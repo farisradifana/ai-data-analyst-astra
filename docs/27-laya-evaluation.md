@@ -1,8 +1,8 @@
 # 27 — Laya Evaluation Results (run 2026-11-17)
 
 Command:
-```bash
-PYTHONPATH=src .venv-laya/Scripts/python -m decision_engine.evaluation --checkpoints multilingual english typed-decisions --threads 4
+```powershell
+.\astra laya-eval --checkpoints multilingual english typed-decisions --threads 4
 ```
 Raw outputs: `reports/laya/benchmark.json`, `reports/laya/benchmark.md`,
 `reports/laya/eval_<checkpoint>_<task>.jsonl` (each row: input, expected, prediction, confidence,

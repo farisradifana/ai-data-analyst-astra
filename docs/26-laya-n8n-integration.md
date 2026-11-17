@@ -6,10 +6,11 @@ Status 2026-11-17: the local API is **implemented and smoke-tested**. The n8n wo
 
 ## Local API (`src/decision_engine/api.py`)
 
-Start (from project root):
-```bash
-PYTHONPATH=src HF_HUB_OFFLINE=1 .venv-laya/Scripts/python -m decision_engine.api
+Start it from the project folder, in PowerShell or cmd:
+```powershell
+.\astra laya-api
 ```
+This command uses `.venv-laya` and sets `PYTHONPATH` and `HF_HUB_OFFLINE=1`.
 Needs `LAYA_API_TOKEN` (≥ 16 chars) in the environment. Without it, the server refuses to start.
 Generate one with `python -c "import secrets;print(secrets.token_urlsafe(32))"` and keep it in `.env`.
 

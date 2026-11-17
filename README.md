@@ -19,6 +19,6 @@ Raw data (`raw-data/`) is intentionally not stored in Git.
 
 ## Re-run profiling
 
-```bash
-python scripts/profile_raw.py
+```powershell
+python scripts\profile_raw.py
 ```

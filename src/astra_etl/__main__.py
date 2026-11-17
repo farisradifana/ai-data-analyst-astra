@@ -1,6 +1,9 @@
-"""CLI: PYTHONPATH=src python -m astra_etl [--dry-run] [--offline] [--trigger MANUAL|SCHEDULED|REPROCESS]
+r"""ETL entry point. From the project folder, in PowerShell or cmd:
 
-Active corrections (python -m astra_etl.fix) are read from the database and applied first.
+  .\astra etl [--dry-run] [--offline] [--trigger MANUAL|SCHEDULED|REPROCESS]
+  .\astra fix ...        (see astra_etl/fix.py)
+
+Active corrections (.\astra fix set ...) are read from the database and applied first.
 --dry-run reads them but writes nothing; --offline (dry runs only) skips the database entirely.
 
 Writes a counts-only summary to reports/etl/last_run_summary.json and .md (no record content).
@@ -56,7 +59,14 @@ def write_summary(results, mode: str, run_id: str | None) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="astra_etl")
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["fix"]:  # .\astra fix ...
+        from .fix import main as fix_main
+
+        return fix_main(argv[1:])
+    if argv[:1] == ["etl"]:  # .\astra etl ...
+        argv = argv[1:]
+    ap = argparse.ArgumentParser(prog="astra etl")
     ap.add_argument("--dry-run", action="store_true", help="validate only, no database writes")
     ap.add_argument("--offline", action="store_true", help="with --dry-run: no database, no corrections")
     ap.add_argument("--trigger", default="MANUAL", choices=["MANUAL", "SCHEDULED", "REPROCESS"])

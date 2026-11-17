@@ -1,7 +1,7 @@
-"""Local HTTP API for the Laya decision engine (for n8n on the same machine).
+r"""Local HTTP API for the Laya decision engine (for n8n on the same machine).
 
-Run (inside .venv-laya, from project root):
-  PYTHONPATH=src python -m decision_engine.api
+Run from the project folder, in PowerShell or cmd:
+  .\astra laya-api
 
 Security:
 - Binds to 127.0.0.1 by default. A non-loopback host is refused unless

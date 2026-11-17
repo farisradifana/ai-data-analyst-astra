@@ -1,12 +1,13 @@
-"""Fix quarantined rows in the database (dataset.quarantine_correction), as astra_analyst.
+r"""Fix quarantined rows in the database (dataset.quarantine_correction), as astra_analyst.
 
-  python -m astra_etl.fix list   [--table T] [--rule R] [--limit N]   open quarantine, no values
-  python -m astra_etl.fix show   TABLE KEY                            rule, columns, current raw values
-  python -m astra_etl.fix set    TABLE KEY COLUMN VALUE --reason "..." [--line N] [--blank]
-  python -m astra_etl.fix off    CORRECTION_ID                        withdraw (is_active = false)
-  python -m astra_etl.fix status                                      corrections and last outcome
+Run from the project folder, in PowerShell or cmd:
+  .\astra fix list   [--table T] [--rule R] [--limit N]   open quarantine, no values
+  .\astra fix show   TABLE KEY                            rule, columns, current raw values
+  .\astra fix set    TABLE KEY COLUMN VALUE --reason "..." [--line N] [--blank]
+  .\astra fix off    CORRECTION_ID                        withdraw (is_active = false)
+  .\astra fix status                                      corrections and last outcome
 
-A correction takes effect on the next ETL run (python -m astra_etl). The source CSV is not changed.
+A correction takes effect on the next ETL run (.\astra etl). The source CSV is not changed.
 `show` prints raw values, which may be personal data: use it only on your own machine.
 """
 from __future__ import annotations
@@ -31,7 +32,7 @@ def _source_columns(table: str) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="astra_etl.fix")
+    ap = argparse.ArgumentParser(prog="astra fix")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("list")
     p.add_argument("--table", choices=sorted(SPEC_BY_NAME))
@@ -104,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
                             (a.table, a.key, a.line, a.column, None if a.blank else a.value, a.reason))
                 cid = cur.fetchone()[0]
                 print(f"correction #{cid} saved" + (" (replaced the previous one)" if replaced else "")
-                      + "; it applies on the next ETL run: python -m astra_etl")
+                      + "; it applies on the next ETL run: .\\astra etl")
             elif a.cmd == "off":
                 cur.execute("UPDATE dataset.quarantine_correction SET is_active = false, updated_at = now() "
                             "WHERE correction_id = %s AND is_active", (a.correction_id,))

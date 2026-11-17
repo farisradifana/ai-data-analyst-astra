@@ -5,14 +5,14 @@ project venvs were not modified.
 
 ## Steps actually run
 
-```bash
+```powershell
 python -m venv .venv-laya
 ```
-```bash
-.venv-laya/Scripts/python -m pip install --index-url https://download.pytorch.org/whl/cpu torch
+```powershell
+.venv-laya\Scripts\python -m pip install --index-url https://download.pytorch.org/whl/cpu torch
 ```
-```bash
-.venv-laya/Scripts/python -m pip install "laya==0.4.35" pytest
+```powershell
+.venv-laya\Scripts\python -m pip install "laya==0.4.35" pytest
 ```
 
 CPU-only torch was installed on purpose: the machine has no NVIDIA GPU (AMD Radeon RX 560X /
@@ -51,11 +51,11 @@ PyTorch documentation links were found; no hosted inference endpoint is called.
 ## Verify
 
 Unit tests (no weights needed):
-```bash
-.venv-laya/Scripts/python -m pytest -q
+```powershell
+.\astra test
 ```
 Real local inference, offline (needs cached weights):
-```bash
-HF_HUB_OFFLINE=1 .venv-laya/Scripts/python -m pytest -q -m laya
+```powershell
+.\astra laya-test
 ```
 Result 2026-11-17: 44 unit/API passed; 5 real-model passed offline.

@@ -2,11 +2,23 @@
 
 ## Run
 
-```bash
-PYTHONPATH=src python -m astra_etl --dry-run   # validate only (reads fixes), no database writes
-PYTHONPATH=src python -m astra_etl --dry-run --offline   # no database at all
-PYTHONPATH=src python -m astra_etl             # load as astra_analyst (verify-full SSL)
+Run these from the project folder, in PowerShell or cmd.
+`astra.cmd` sets `PYTHONPATH` itself.
+
+```powershell
+.\astra etl --dry-run
 ```
+```powershell
+.\astra etl --dry-run --offline
+```
+```powershell
+.\astra etl
+```
+
+- The first command validates and reads fixes, but writes nothing to the database.
+- The second skips the database entirely.
+- The third loads the data as `astra_analyst`, over `verify-full` SSL.
+- Running `.\astra` with no command only prints the usage. It never starts a load.
 
 The run reads `raw-data/<table>.csv` and connects with `.env` (see doc 30 and `scripts/check_db_connection.py`).
 It writes a counts-only summary to `reports/etl/last_run_summary.{json,md}`, which contains no record content.
@@ -19,7 +31,7 @@ Modules in `src/astra_etl/`:
 | `clean.py` | Value cleaners. Decisions D1–D4, D6. |
 | `spec.py` | Mapping per table (CSV column → cleaner → DB column), FKs, cross-column rules |
 | `rules.py` | Quarantine rule catalog. Mirrors `dataset.quarantine_rule`. |
-| `fix.py` | `python -m astra_etl.fix` commands: list / show / set / off / status for fixes |
+| `fix.py` | `.\astra fix` commands: list / show / set / off / status for fixes |
 | `transform.py` | Exact duplicates, cleaning, row rules, PK conflicts, FK checks. Asserts `read = loaded + quarantined + duplicate`. |
 | `load.py` | One transaction. Upserts with no DELETE, then the quarantine lifecycle, `etl_run_file` and `dq_check_result`. |
 
@@ -64,22 +76,22 @@ The source files in `raw-data/` are never changed, so they stay as the audit tra
 1. **Find** what to fix. `list` shows table, key, rule, the columns to fix and what the row waits for.
    It shows no values.
 
-   ```bash
-   PYTHONPATH=src python -m astra_etl.fix list --table products
+   ```powershell
+   .\astra fix list --table products
    ```
 
 2. **Look** at one row: its rule, how to fix it, and the current values.
    The failing columns are marked `<-`.
    The output can contain personal data, so use it on your own machine only.
 
-   ```bash
-   PYTHONPATH=src python -m astra_etl.fix show products PRD00148
+   ```powershell
+   .\astra fix show products PRD00148
    ```
 
 3. **Fix** the value. Use the column name from the source CSV. `--reason` is required.
 
-   ```bash
-   PYTHONPATH=src python -m astra_etl.fix set products PRD00148 list_price 150000 --reason "price from catalogue"
+   ```powershell
+   .\astra fix set products PRD00148 list_price 150000 --reason "price from catalogue"
    ```
 
    - `--blank` makes the cell empty instead of setting a value.
@@ -89,7 +101,8 @@ The source files in `raw-data/` are never changed, so they stay as the audit tra
    - `off <correction_id>` withdraws a fix. Rows are never deleted: the fix is only marked inactive.
    - For `AUTO_WITH_PARENT` rows, fix the parent named in `depends_on`.
      All the rows waiting on that parent graduate in the same run.
-4. **Rerun** the ETL with `python -m astra_etl`.
+4. **Rerun** the ETL with `.\astra etl`.
+   Put double quotes around any value that contains spaces, commas or `=`.
    Each fix gets a `last_outcome`:
 
    | Outcome | Meaning |
@@ -106,7 +119,7 @@ The source files in `raw-data/` are never changed, so they stay as the audit tra
 
    `resolved_run_id` records which run made the change.
 5. **Track** progress:
-   - `python -m astra_etl.fix status`, or the view `v_correction_status`.
+   - `.\astra fix status`, or the view `v_correction_status`.
    - `v_quarantine_lifecycle`, which counts records per table, rule and status.
 
 Fixes are kept across runs.
