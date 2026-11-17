@@ -37,9 +37,9 @@ flowchart TD
 | `src/decision_engine/confidence_policy.py` | Bands HIGH/MEDIUM/LOW from `config/laya_policy.json`; no file → nothing auto-accepted |
 | `src/decision_engine/fallback.py` | Auditable keyword rules; returns `UNKNOWN`/`UNKNOWN_ERROR` instead of guessing |
 | `src/decision_engine/evaluation.py` | Benchmark on `evals/laya/*.jsonl` → `reports/laya/` |
+| `src/decision_engine/api.py` | FastAPI on 127.0.0.1: `/health`, `/model-info`, `/predict`, `/evaluate`; bearer token, input limits, timeout |
 
-Not yet implemented: `api.py` (FastAPI on 127.0.0.1), n8n workflow `ASTRA_LAYA_DECISION_ENGINE`,
-Telegram routing. See [26-laya-n8n-integration.md](26-laya-n8n-integration.md).
+Not yet implemented: n8n workflow `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing. See [26-laya-n8n-integration.md](26-laya-n8n-integration.md).
 
 ## Hard limits
 

@@ -28,6 +28,9 @@ Vega 8), so CUDA wheels would only waste disk. Install log: `logs/laya_install.l
 | huggingface_hub | 2.4.0 |
 | vegaml | 0.16.3 (installed as a laya dependency; vega lane disabled in code) |
 | pytest | 9.2.0 |
+| fastapi / starlette | 0.163.1 / 1.10.0 (added 2026-11-17, user-approved) |
+| uvicorn | 0.54.0 |
+| httpx | 0.28.1 (FastAPI TestClient) |
 
 ## Model weights
 
@@ -55,4 +58,4 @@ Real local inference, offline (needs cached weights):
 ```bash
 HF_HUB_OFFLINE=1 .venv-laya/Scripts/python -m pytest -q -m laya
 ```
-Result 2026-11-17: 24 unit passed; 5 real-model passed offline in 38.8 s.
+Result 2026-11-17: 44 unit/API passed; 5 real-model passed offline.

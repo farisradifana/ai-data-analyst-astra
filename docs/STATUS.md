@@ -22,7 +22,7 @@ BLOCKED = waits on a human step (see [HUMAN-STEPS.md](HUMAN-STEPS.md)).
 | 10 | Documentation & automation | PARTIAL | `docs/STATUS.md`, `docs/HUMAN-STEPS.md`, profiling summary, Laya docs 22–29, `.env.example` | docs 00–21, Task Scheduler job, backup/restore runbook | **H6** approve scheduled task |
 | 11 | Testing & final review | TODO | — | 17 test cases from spec, reconciliation, final report | — |
 | 12 | Global skill | TODO | — | `%USERPROFILE%\.claude\skills\astra-enterprise-data-platform\SKILL.md` + discovery check | — |
-| L | Laya local decision engine | PARTIAL | `laya==0.4.35` in `.venv-laya` (CPU torch 2.15.0); 3 checkpoints benchmarked; multilingual selected; engine, policy, fallback, eval harness; 24 unit + 5 real-model tests pass (offline) | FastAPI `api.py`, n8n `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing, held-out eval set | Approve `fastapi`/`uvicorn`; decide whether to keep auto-routing off |
+| L | Laya local decision engine | PARTIAL | `laya==0.4.35` in `.venv-laya` (CPU torch 2.15.0); 3 checkpoints benchmarked; multilingual selected; engine, policy, fallback, eval harness; local FastAPI `api.py` on 127.0.0.1:8765 (bearer token) smoke-tested with real model; 44 unit/API + 5 real-model tests pass (offline) | n8n `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing, held-out eval set, verify Ctrl+C shutdown | Put `LAYA_API_TOKEN` in `.env`; decide whether to keep auto-routing off |
 | — | GitHub backup | DONE | Public repo `farisradifana/ai-data-analyst-astra` (user decision: public prototype); raw-data, `.env`, secrets, weights excluded | Push after each milestone | — |
 
 ## Phase 1 — environment inventory (verified 2026-11-17)
