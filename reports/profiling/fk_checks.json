@@ -1,0 +1,157 @@
+[
+  {
+    "child": "attendance",
+    "column": "employee_id",
+    "parent": "employees",
+    "non_blank": 34963,
+    "blank": 77,
+    "orphans": 73,
+    "orphan_examples": [
+      "EMP99999"
+    ]
+  },
+  {
+    "child": "employees",
+    "column": "manager_id",
+    "parent": "employees",
+    "non_blank": 5006,
+    "blank": 19,
+    "orphans": 0,
+    "orphan_examples": []
+  },
+  {
+    "child": "expenses",
+    "column": "submitted_by_employee_id",
+    "parent": "employees",
+    "non_blank": 25025,
+    "blank": 0,
+    "orphans": 0,
+    "orphan_examples": []
+  },
+  {
+    "child": "inventory",
+    "column": "product_id",
+    "parent": "products",
+    "non_blank": 35080,
+    "blank": 0,
+    "orphans": 0,
+    "orphan_examples": []
+  },
+  {
+    "child": "procurement",
+    "column": "supplier_id",
+    "parent": "suppliers",
+    "non_blank": 30022,
+    "blank": 23,
+    "orphans": 66,
+    "orphan_examples": [
+      "PRD99999",
+      "EMP99999",
+      "SUP9999"
+    ]
+  },
+  {
+    "child": "procurement",
+    "column": "product_id",
+    "parent": "products",
+    "non_blank": 30024,
+    "blank": 21,
+    "orphans": 56,
+    "orphan_examples": [
+      "EMP99999",
+      "PRD99999",
+      "SUP9999"
+    ]
+  },
+  {
+    "child": "procurement",
+    "column": "buyer_employee_id",
+    "parent": "employees",
+    "non_blank": 30030,
+    "blank": 15,
+    "orphans": 70,
+    "orphan_examples": [
+      "EMP99999",
+      "SUP9999",
+      "PRD99999"
+    ]
+  },
+  {
+    "child": "sales_transactions",
+    "column": "customer_id",
+    "parent": "customers",
+    "non_blank": 220221,
+    "blank": 79,
+    "orphans": 245,
+    "orphan_examples": [
+      "CUS999999",
+      "PRD99999",
+      "EMP99999"
+    ]
+  },
+  {
+    "child": "sales_transactions",
+    "column": "product_id",
+    "parent": "products",
+    "non_blank": 220219,
+    "blank": 81,
+    "orphans": 245,
+    "orphan_examples": [
+      "CUS999999",
+      "EMP99999",
+      "PRD99999"
+    ]
+  },
+  {
+    "child": "sales_transactions",
+    "column": "employee_id",
+    "parent": "employees",
+    "non_blank": 220211,
+    "blank": 89,
+    "orphans": 261,
+    "orphan_examples": [
+      "PRD99999",
+      "EMP99999",
+      "CUS999999"
+    ]
+  },
+  {
+    "child": "service_orders",
+    "column": "customer_id",
+    "parent": "customers",
+    "non_blank": 18004,
+    "blank": 16,
+    "orphans": 42,
+    "orphan_examples": [
+      "EMP99999",
+      "PRD99999",
+      "CUS999999"
+    ]
+  },
+  {
+    "child": "service_orders",
+    "column": "product_id",
+    "parent": "products",
+    "non_blank": 18008,
+    "blank": 12,
+    "orphans": 46,
+    "orphan_examples": [
+      "EMP99999",
+      "PRD99999",
+      "CUS999999"
+    ]
+  },
+  {
+    "child": "service_orders",
+    "column": "technician_employee_id",
+    "parent": "employees",
+    "non_blank": 18006,
+    "blank": 14,
+    "orphans": 50,
+    "orphan_examples": [
+      "EMP99999",
+      "CUS999999",
+      "PRD99999"
+    ]
+  }
+]

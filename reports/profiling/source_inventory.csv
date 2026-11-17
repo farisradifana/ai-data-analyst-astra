@@ -1,0 +1,11 @@
+table,file,bytes,rows,columns,encoding,delimiter,sha256,candidate_pk,exact_duplicate_extra_rows,pk_duplicate_keys
+attendance,attendance.csv,2068099,35040,7,utf-8-sig,",",0032c096a587f3d048997ab838d1b464eb94a1b29352c07058a85b71295518df,attendance_id,40,40
+customers,customers.csv,6385052,60120,8,utf-8-sig,",",2b7f1495aa6271fde34a27fa3c2315ef064d84597322292f7aeadc6b500fa2c3,customer_id,120,120
+employees,employees.csv,628588,5025,10,utf-8-sig,",",c8399e08111e467e3cdd2f7226a1b45c1dd6ffdfd36d31fada146c415681229b,employee_id,25,25
+expenses,expenses.csv,2550840,25025,9,utf-8-sig,",",bef4011f701e963028dc11008cd0737fc1dc29eb1a3fae3ea710186dca5a7716,expense_id,25,25
+inventory,inventory.csv,2639276,35080,8,utf-8-sig,",",f44a0d8526f64d1d65f2805b044e8d38ba863261948f101d057115e93059135c,inventory_id,80,80
+procurement,procurement.csv,2613829,30045,9,utf-8-sig,",",c2c5718a71ed93abbc55b39c88e75597704b73188a3184e178012f2bad0138bd,procurement_id,45,45
+products,products.csv,398554,5035,7,utf-8-sig,",",41b21e81c642449434ca71ee5a0a33d9e93250d42b3ce7db6031532dff6e4044,product_id,35,35
+sales_transactions,sales_transactions.csv,22073493,220300,11,utf-8-sig,",",c717a783ef18047a6ced36bdf5011b3a874733f465c476df5f63a6e049fd7730,transaction_id,300,300
+service_orders,service_orders.csv,1983271,18020,10,utf-8-sig,",",d057c7d560fa450542d36ae418d69c463197ec94c1df7fbad37cdfc6668e39c4,service_order_id,20,20
+suppliers,suppliers.csv,169524,1510,8,utf-8-sig,",",9e022483de2b533e57d6fdc06f03d985b0b99d68cad7fc025d7c6c5d51cc37cc,supplier_id,10,10
