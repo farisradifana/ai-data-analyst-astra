@@ -1,0 +1,990 @@
+{
+  "generated": "2026-11-17T10:30:44+00:00",
+  "hardware": {
+    "cpu": "AMD64 Family 23 Model 24 Stepping 1, AuthenticAMD",
+    "machine": "AMD64",
+    "threads": 4,
+    "os": "Windows-11-10.0.26300-SP0"
+  },
+  "note": "Small synthetic labeled set; results are indicative only, not production accuracy.",
+  "results": {
+    "rule_fallback": {
+      "dq_category": {
+        "n": 40,
+        "accuracy": 0.9,
+        "macro_f1": 0.905,
+        "accuracy_by_lang": {
+          "en": 0.8,
+          "id": 1.0
+        },
+        "ece_5bin": 0.1,
+        "mean_conf_correct": 1.0,
+        "mean_conf_wrong": 1.0,
+        "per_label": {
+          "MISSING_REQUIRED_FIELD": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "DUPLICATE_RECORD": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "INVALID_DATE": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "INVALID_NUMERIC_VALUE": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "ORPHAN_FOREIGN_KEY": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "INCONSISTENT_CATEGORY": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "INVALID_BUSINESS_STATUS": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "TYPE_CONVERSION_ERROR": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "BUSINESS_RULE_VIOLATION": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "UNKNOWN_ERROR": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.667,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "INVALID_DATE->UNKNOWN_ERROR": 2,
+          "INCONSISTENT_CATEGORY->UNKNOWN_ERROR": 1,
+          "INVALID_BUSINESS_STATUS->UNKNOWN_ERROR": 1
+        }
+      },
+      "agent_route": {
+        "n": 32,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "accuracy_by_lang": {
+          "id": 1.0,
+          "en": 1.0
+        },
+        "ece_5bin": 0.0,
+        "mean_conf_correct": 1.0,
+        "mean_conf_wrong": null,
+        "per_label": {
+          "KPI_QUERY": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "BUSINESS_ANALYSIS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "DATA_QUALITY": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "PIPELINE_STATUS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "REPROCESSING_REQUEST": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "TECHNICAL_SUPPORT": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "GENERAL_QUESTION": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "UNKNOWN": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          }
+        },
+        "confusion": {}
+      }
+    },
+    "multilingual": {
+      "model_info": {
+        "package": "laya",
+        "package_version": "0.4.35",
+        "checkpoint": "multilingual",
+        "repo": "convaiinnovations/laya",
+        "subfolder": "multilingual",
+        "pinned_revision": "e4e9ddf21a7b1903b7acffd8814ad4307bf63a67",
+        "device": "cpu",
+        "vega_lane": false,
+        "hosted_api": false
+      },
+      "load_seconds": 34.9,
+      "dq_category": {
+        "n": 40,
+        "accuracy": 0.6,
+        "macro_f1": 0.594,
+        "accuracy_by_lang": {
+          "en": 0.65,
+          "id": 0.55
+        },
+        "ece_5bin": 0.193,
+        "mean_conf_correct": 0.901,
+        "mean_conf_wrong": 0.632,
+        "per_label": {
+          "MISSING_REQUIRED_FIELD": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4
+          },
+          "DUPLICATE_RECORD": {
+            "precision": 0.286,
+            "recall": 0.5,
+            "f1": 0.364,
+            "support": 4
+          },
+          "INVALID_DATE": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "INVALID_NUMERIC_VALUE": {
+            "precision": 0.333,
+            "recall": 0.25,
+            "f1": 0.286,
+            "support": 4
+          },
+          "ORPHAN_FOREIGN_KEY": {
+            "precision": 0.667,
+            "recall": 1.0,
+            "f1": 0.8,
+            "support": 4
+          },
+          "INCONSISTENT_CATEGORY": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4
+          },
+          "INVALID_BUSINESS_STATUS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "TYPE_CONVERSION_ERROR": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "BUSINESS_RULE_VIOLATION": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4
+          },
+          "UNKNOWN_ERROR": {
+            "precision": 0.3,
+            "recall": 0.75,
+            "f1": 0.429,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "MISSING_REQUIRED_FIELD->DUPLICATE_RECORD": 2,
+          "MISSING_REQUIRED_FIELD->ORPHAN_FOREIGN_KEY": 1,
+          "DUPLICATE_RECORD->ORPHAN_FOREIGN_KEY": 1,
+          "DUPLICATE_RECORD->UNKNOWN_ERROR": 1,
+          "INVALID_NUMERIC_VALUE->UNKNOWN_ERROR": 3,
+          "INCONSISTENT_CATEGORY->UNKNOWN_ERROR": 1,
+          "INCONSISTENT_CATEGORY->DUPLICATE_RECORD": 2,
+          "TYPE_CONVERSION_ERROR->INVALID_NUMERIC_VALUE": 1,
+          "BUSINESS_RULE_VIOLATION->INVALID_NUMERIC_VALUE": 1,
+          "BUSINESS_RULE_VIOLATION->UNKNOWN_ERROR": 2,
+          "UNKNOWN_ERROR->DUPLICATE_RECORD": 1
+        },
+        "latency_ms": {
+          "p50": 1161.9,
+          "p95": 1377.7,
+          "max": 1930.2
+        },
+        "accuracy_at_threshold": [
+          {
+            "threshold": 0.0,
+            "coverage": 1.0,
+            "accuracy": 0.6
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 1.0,
+            "accuracy": 0.6
+          },
+          {
+            "threshold": 0.3,
+            "coverage": 0.95,
+            "accuracy": 0.605
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.9,
+            "accuracy": 0.639
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.85,
+            "accuracy": 0.676
+          },
+          {
+            "threshold": 0.6,
+            "coverage": 0.75,
+            "accuracy": 0.733
+          },
+          {
+            "threshold": 0.7,
+            "coverage": 0.675,
+            "accuracy": 0.778
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.6,
+            "accuracy": 0.833
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.525,
+            "accuracy": 0.857
+          }
+        ]
+      },
+      "agent_route": {
+        "n": 32,
+        "accuracy": 0.688,
+        "macro_f1": 0.663,
+        "accuracy_by_lang": {
+          "id": 0.562,
+          "en": 0.812
+        },
+        "ece_5bin": 0.197,
+        "mean_conf_correct": 0.788,
+        "mean_conf_wrong": 0.678,
+        "per_label": {
+          "KPI_QUERY": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "BUSINESS_ANALYSIS": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "DATA_QUALITY": {
+            "precision": 0.8,
+            "recall": 1.0,
+            "f1": 0.889,
+            "support": 4
+          },
+          "PIPELINE_STATUS": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "REPROCESSING_REQUEST": {
+            "precision": 0.8,
+            "recall": 1.0,
+            "f1": 0.889,
+            "support": 4
+          },
+          "TECHNICAL_SUPPORT": {
+            "precision": 0.5,
+            "recall": 0.75,
+            "f1": 0.6,
+            "support": 4
+          },
+          "GENERAL_QUESTION": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "UNKNOWN": {
+            "precision": 0.429,
+            "recall": 0.75,
+            "f1": 0.545,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "KPI_QUERY->UNKNOWN": 3,
+          "KPI_QUERY->TECHNICAL_SUPPORT": 1,
+          "BUSINESS_ANALYSIS->TECHNICAL_SUPPORT": 1,
+          "PIPELINE_STATUS->DATA_QUALITY": 1,
+          "TECHNICAL_SUPPORT->UNKNOWN": 1,
+          "GENERAL_QUESTION->TECHNICAL_SUPPORT": 1,
+          "GENERAL_QUESTION->KPI_QUERY": 1,
+          "UNKNOWN->REPROCESSING_REQUEST": 1
+        },
+        "latency_ms": {
+          "p50": 979.6,
+          "p95": 1108.3,
+          "max": 1442.2
+        },
+        "accuracy_at_threshold": [
+          {
+            "threshold": 0.0,
+            "coverage": 1.0,
+            "accuracy": 0.688
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 1.0,
+            "accuracy": 0.688
+          },
+          {
+            "threshold": 0.3,
+            "coverage": 1.0,
+            "accuracy": 0.688
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.969,
+            "accuracy": 0.71
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.812,
+            "accuracy": 0.731
+          },
+          {
+            "threshold": 0.6,
+            "coverage": 0.719,
+            "accuracy": 0.696
+          },
+          {
+            "threshold": 0.7,
+            "coverage": 0.594,
+            "accuracy": 0.789
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.562,
+            "accuracy": 0.833
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.312,
+            "accuracy": 0.8
+          }
+        ]
+      },
+      "rss_mb_after": 1636,
+      "peak_rss_mb": 2225
+    },
+    "english": {
+      "model_info": {
+        "package": "laya",
+        "package_version": "0.4.35",
+        "checkpoint": "english",
+        "repo": "convaiinnovations/laya",
+        "subfolder": null,
+        "pinned_revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+        "device": "cpu",
+        "vega_lane": false,
+        "hosted_api": false
+      },
+      "load_seconds": 234.3,
+      "dq_category": {
+        "n": 40,
+        "accuracy": 0.575,
+        "macro_f1": 0.536,
+        "accuracy_by_lang": {
+          "en": 0.7,
+          "id": 0.45
+        },
+        "ece_5bin": 0.095,
+        "mean_conf_correct": 0.788,
+        "mean_conf_wrong": 0.333,
+        "per_label": {
+          "MISSING_REQUIRED_FIELD": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "DUPLICATE_RECORD": {
+            "precision": 0.375,
+            "recall": 0.75,
+            "f1": 0.5,
+            "support": 4
+          },
+          "INVALID_DATE": {
+            "precision": 0.667,
+            "recall": 1.0,
+            "f1": 0.8,
+            "support": 4
+          },
+          "INVALID_NUMERIC_VALUE": {
+            "precision": 0.333,
+            "recall": 0.25,
+            "f1": 0.286,
+            "support": 4
+          },
+          "ORPHAN_FOREIGN_KEY": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "INCONSISTENT_CATEGORY": {
+            "precision": 0.4,
+            "recall": 0.5,
+            "f1": 0.444,
+            "support": 4
+          },
+          "INVALID_BUSINESS_STATUS": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "TYPE_CONVERSION_ERROR": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "BUSINESS_RULE_VIOLATION": {
+            "precision": 0.5,
+            "recall": 0.25,
+            "f1": 0.333,
+            "support": 4
+          },
+          "UNKNOWN_ERROR": {
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.667,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "MISSING_REQUIRED_FIELD->UNKNOWN_ERROR": 1,
+          "MISSING_REQUIRED_FIELD->DUPLICATE_RECORD": 1,
+          "DUPLICATE_RECORD->UNKNOWN_ERROR": 1,
+          "INVALID_NUMERIC_VALUE->UNKNOWN_ERROR": 2,
+          "INVALID_NUMERIC_VALUE->INCONSISTENT_CATEGORY": 1,
+          "ORPHAN_FOREIGN_KEY->DUPLICATE_RECORD": 3,
+          "ORPHAN_FOREIGN_KEY->INCONSISTENT_CATEGORY": 1,
+          "INCONSISTENT_CATEGORY->BUSINESS_RULE_VIOLATION": 1,
+          "INCONSISTENT_CATEGORY->DUPLICATE_RECORD": 1,
+          "TYPE_CONVERSION_ERROR->INVALID_NUMERIC_VALUE": 1,
+          "TYPE_CONVERSION_ERROR->INVALID_DATE": 1,
+          "BUSINESS_RULE_VIOLATION->INCONSISTENT_CATEGORY": 1,
+          "BUSINESS_RULE_VIOLATION->INVALID_NUMERIC_VALUE": 1,
+          "BUSINESS_RULE_VIOLATION->INVALID_DATE": 1
+        },
+        "latency_ms": {
+          "p50": 2708.2,
+          "p95": 2894.1,
+          "max": 2962.8
+        },
+        "accuracy_at_threshold": [
+          {
+            "threshold": 0.0,
+            "coverage": 1.0,
+            "accuracy": 0.575
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 0.975,
+            "accuracy": 0.59
+          },
+          {
+            "threshold": 0.3,
+            "coverage": 0.75,
+            "accuracy": 0.767
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.625,
+            "accuracy": 0.84
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.5,
+            "accuracy": 0.95
+          },
+          {
+            "threshold": 0.6,
+            "coverage": 0.475,
+            "accuracy": 0.947
+          },
+          {
+            "threshold": 0.7,
+            "coverage": 0.425,
+            "accuracy": 0.941
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.375,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.25,
+            "accuracy": 1.0
+          }
+        ]
+      },
+      "agent_route": {
+        "n": 32,
+        "accuracy": 0.625,
+        "macro_f1": 0.639,
+        "accuracy_by_lang": {
+          "id": 0.438,
+          "en": 0.812
+        },
+        "ece_5bin": 0.089,
+        "mean_conf_correct": 0.689,
+        "mean_conf_wrong": 0.54,
+        "per_label": {
+          "KPI_QUERY": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "BUSINESS_ANALYSIS": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "DATA_QUALITY": {
+            "precision": 0.5,
+            "recall": 0.75,
+            "f1": 0.6,
+            "support": 4
+          },
+          "PIPELINE_STATUS": {
+            "precision": 0.75,
+            "recall": 0.75,
+            "f1": 0.75,
+            "support": 4
+          },
+          "REPROCESSING_REQUEST": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "TECHNICAL_SUPPORT": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "GENERAL_QUESTION": {
+            "precision": 0.333,
+            "recall": 1.0,
+            "f1": 0.5,
+            "support": 4
+          },
+          "UNKNOWN": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "KPI_QUERY->GENERAL_QUESTION": 2,
+          "BUSINESS_ANALYSIS->GENERAL_QUESTION": 2,
+          "DATA_QUALITY->PIPELINE_STATUS": 1,
+          "PIPELINE_STATUS->DATA_QUALITY": 1,
+          "REPROCESSING_REQUEST->DATA_QUALITY": 2,
+          "TECHNICAL_SUPPORT->GENERAL_QUESTION": 1,
+          "UNKNOWN->GENERAL_QUESTION": 3
+        },
+        "latency_ms": {
+          "p50": 2680.4,
+          "p95": 2891.4,
+          "max": 3115.4
+        },
+        "accuracy_at_threshold": [
+          {
+            "threshold": 0.0,
+            "coverage": 1.0,
+            "accuracy": 0.625
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 1.0,
+            "accuracy": 0.625
+          },
+          {
+            "threshold": 0.3,
+            "coverage": 0.969,
+            "accuracy": 0.645
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.875,
+            "accuracy": 0.643
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.781,
+            "accuracy": 0.64
+          },
+          {
+            "threshold": 0.6,
+            "coverage": 0.469,
+            "accuracy": 0.733
+          },
+          {
+            "threshold": 0.7,
+            "coverage": 0.312,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.219,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.156,
+            "accuracy": 1.0
+          }
+        ]
+      },
+      "rss_mb_after": 2231,
+      "peak_rss_mb": 3018
+    },
+    "typed-decisions": {
+      "model_info": {
+        "package": "laya",
+        "package_version": "0.4.35",
+        "checkpoint": "typed-decisions",
+        "repo": "convaiinnovations/laya",
+        "subfolder": "typed-decisions",
+        "pinned_revision": "1a793eb568e6718f15941d08f85432581df534e3",
+        "device": "cpu",
+        "vega_lane": false,
+        "hosted_api": false
+      },
+      "load_seconds": 235.9,
+      "dq_category": {
+        "n": 40,
+        "accuracy": 0.6,
+        "macro_f1": 0.562,
+        "accuracy_by_lang": {
+          "en": 0.75,
+          "id": 0.45
+        },
+        "ece_5bin": 0.318,
+        "mean_conf_correct": 0.334,
+        "mean_conf_wrong": 0.206,
+        "per_label": {
+          "MISSING_REQUIRED_FIELD": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "DUPLICATE_RECORD": {
+            "precision": 0.333,
+            "recall": 1.0,
+            "f1": 0.5,
+            "support": 4
+          },
+          "INVALID_DATE": {
+            "precision": 0.667,
+            "recall": 1.0,
+            "f1": 0.8,
+            "support": 4
+          },
+          "INVALID_NUMERIC_VALUE": {
+            "precision": 0.5,
+            "recall": 0.25,
+            "f1": 0.333,
+            "support": 4
+          },
+          "ORPHAN_FOREIGN_KEY": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "f1": 0.0,
+            "support": 4
+          },
+          "INCONSISTENT_CATEGORY": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "INVALID_BUSINESS_STATUS": {
+            "precision": 0.571,
+            "recall": 1.0,
+            "f1": 0.727,
+            "support": 4
+          },
+          "TYPE_CONVERSION_ERROR": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "BUSINESS_RULE_VIOLATION": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4
+          },
+          "UNKNOWN_ERROR": {
+            "precision": 0.6,
+            "recall": 0.75,
+            "f1": 0.667,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "MISSING_REQUIRED_FIELD->DUPLICATE_RECORD": 2,
+          "INVALID_NUMERIC_VALUE->UNKNOWN_ERROR": 2,
+          "INVALID_NUMERIC_VALUE->INVALID_BUSINESS_STATUS": 1,
+          "ORPHAN_FOREIGN_KEY->DUPLICATE_RECORD": 4,
+          "INCONSISTENT_CATEGORY->DUPLICATE_RECORD": 2,
+          "TYPE_CONVERSION_ERROR->INVALID_BUSINESS_STATUS": 1,
+          "BUSINESS_RULE_VIOLATION->INVALID_DATE": 2,
+          "BUSINESS_RULE_VIOLATION->INVALID_NUMERIC_VALUE": 1,
+          "UNKNOWN_ERROR->INVALID_BUSINESS_STATUS": 1
+        },
+        "latency_ms": {
+          "p50": 3490.5,
+          "p95": 4208.1,
+          "max": 4419.7
+        },
+        "accuracy_at_threshold": [
+          {
+            "threshold": 0.0,
+            "coverage": 1.0,
+            "accuracy": 0.6
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 0.7,
+            "accuracy": 0.75
+          },
+          {
+            "threshold": 0.3,
+            "coverage": 0.325,
+            "accuracy": 0.846
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.175,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.075,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.6,
+            "coverage": 0.025,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.7,
+            "coverage": 0.025,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.0,
+            "accuracy": null
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.0,
+            "accuracy": null
+          }
+        ]
+      },
+      "agent_route": {
+        "n": 32,
+        "accuracy": 0.719,
+        "macro_f1": 0.713,
+        "accuracy_by_lang": {
+          "id": 0.562,
+          "en": 0.875
+        },
+        "ece_5bin": 0.337,
+        "mean_conf_correct": 0.402,
+        "mean_conf_wrong": 0.328,
+        "per_label": {
+          "KPI_QUERY": {
+            "precision": 0.8,
+            "recall": 1.0,
+            "f1": 0.889,
+            "support": 4
+          },
+          "BUSINESS_ANALYSIS": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "DATA_QUALITY": {
+            "precision": 0.571,
+            "recall": 1.0,
+            "f1": 0.727,
+            "support": 4
+          },
+          "PIPELINE_STATUS": {
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.857,
+            "support": 4
+          },
+          "REPROCESSING_REQUEST": {
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.667,
+            "support": 4
+          },
+          "TECHNICAL_SUPPORT": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "support": 4
+          },
+          "GENERAL_QUESTION": {
+            "precision": 0.375,
+            "recall": 0.75,
+            "f1": 0.5,
+            "support": 4
+          },
+          "UNKNOWN": {
+            "precision": 1.0,
+            "recall": 0.25,
+            "f1": 0.4,
+            "support": 4
+          }
+        },
+        "confusion": {
+          "BUSINESS_ANALYSIS->GENERAL_QUESTION": 2,
+          "PIPELINE_STATUS->DATA_QUALITY": 1,
+          "REPROCESSING_REQUEST->DATA_QUALITY": 2,
+          "GENERAL_QUESTION->KPI_QUERY": 1,
+          "UNKNOWN->GENERAL_QUESTION": 3
+        },
+        "latency_ms": {
+          "p50": 2900.5,
+          "p95": 3228.0,
+          "max": 3364.8
+        },
+        "accuracy_at_threshold": [
+          {
+            "threshold": 0.0,
+            "coverage": 1.0,
+            "accuracy": 0.719
+          },
+          {
+            "threshold": 0.2,
+            "coverage": 1.0,
+            "accuracy": 0.719
+          },
+          {
+            "threshold": 0.3,
+            "coverage": 0.688,
+            "accuracy": 0.773
+          },
+          {
+            "threshold": 0.4,
+            "coverage": 0.344,
+            "accuracy": 0.909
+          },
+          {
+            "threshold": 0.5,
+            "coverage": 0.156,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.6,
+            "coverage": 0.062,
+            "accuracy": 1.0
+          },
+          {
+            "threshold": 0.7,
+            "coverage": 0.0,
+            "accuracy": null
+          },
+          {
+            "threshold": 0.8,
+            "coverage": 0.0,
+            "accuracy": null
+          },
+          {
+            "threshold": 0.9,
+            "coverage": 0.0,
+            "accuracy": null
+          }
+        ]
+      },
+      "rss_mb_after": 2102,
+      "peak_rss_mb": 3018
+    }
+  }
+}

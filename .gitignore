@@ -1,4 +1,7 @@
 # Secrets
+secrets/
+*.crt
+*.pem
 .env
 .env.*
 !.env.example
@@ -21,7 +24,10 @@ logs/
 __pycache__/
 *.py[cod]
 .venv/
+.venv-*/
 venv/
+models/
+.hf-cache/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

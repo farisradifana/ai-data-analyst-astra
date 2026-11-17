@@ -1,0 +1,40 @@
+{"id":"dq01","lang":"en","label":"MISSING_REQUIRED_FIELD","text":"Sales transaction SAL00012345 has an empty customer_id; customer_id is mandatory for every completed sale."}
+{"id":"dq02","lang":"en","label":"MISSING_REQUIRED_FIELD","text":"Attendance record has no employee_id value, the field is blank but required."}
+{"id":"dq03","lang":"id","label":"MISSING_REQUIRED_FIELD","text":"Kolom product_id pada transaksi penjualan kosong, padahal kolom ini wajib diisi."}
+{"id":"dq04","lang":"id","label":"MISSING_REQUIRED_FIELD","text":"Data pengadaan PO0001234 tidak memiliki supplier_id; field wajib tidak terisi."}
+{"id":"dq05","lang":"en","label":"DUPLICATE_RECORD","text":"Customer CUS000777 appears twice in the file with identical values in every column."}
+{"id":"dq06","lang":"en","label":"DUPLICATE_RECORD","text":"Transaction ID SAL00098765 occurs two times; the second row is an exact copy of the first."}
+{"id":"dq07","lang":"id","label":"DUPLICATE_RECORD","text":"Baris karyawan EMP00321 tercatat dua kali dengan isi yang sama persis."}
+{"id":"dq08","lang":"id","label":"DUPLICATE_RECORD","text":"Nomor inventory INV0004567 muncul ganda di file sumber, seluruh kolom identik."}
+{"id":"dq09","lang":"en","label":"INVALID_DATE","text":"expense_date contains 31/02/2025, which is not a real calendar date."}
+{"id":"dq10","lang":"en","label":"INVALID_DATE","text":"The hire_date value 2019-13-40 cannot be parsed as a date because month 13 and day 40 do not exist."}
+{"id":"dq11","lang":"id","label":"INVALID_DATE","text":"Tanggal transaksi berisi 45-07-2024, tanggal tersebut tidak valid."}
+{"id":"dq12","lang":"id","label":"INVALID_DATE","text":"Format tanggal snapshot_date tidak dikenali: '2024/02/30' bukan tanggal yang ada."}
+{"id":"dq13","lang":"en","label":"INVALID_NUMERIC_VALUE","text":"The quantity field contains the word 'two' instead of a number."}
+{"id":"dq14","lang":"en","label":"INVALID_NUMERIC_VALUE","text":"Expense amount is the text 'unknown' and cannot be read as a number."}
+{"id":"dq15","lang":"id","label":"INVALID_NUMERIC_VALUE","text":"Nilai list_price berisi 'TBD', bukan angka."}
+{"id":"dq16","lang":"id","label":"INVALID_NUMERIC_VALUE","text":"Kolom quantity_on_hand berisi 'N/A' sehingga tidak bisa dibaca sebagai bilangan."}
+{"id":"dq17","lang":"en","label":"ORPHAN_FOREIGN_KEY","text":"Sales transaction references customer CUS999999, which does not exist in the customers table."}
+{"id":"dq18","lang":"en","label":"ORPHAN_FOREIGN_KEY","text":"Procurement row points to supplier SUP9999 that is not found in the supplier master."}
+{"id":"dq19","lang":"id","label":"ORPHAN_FOREIGN_KEY","text":"Order servis merujuk technician EMP99999 yang tidak ada di tabel karyawan."}
+{"id":"dq20","lang":"id","label":"ORPHAN_FOREIGN_KEY","text":"product_id PRD99999 pada data inventory tidak ditemukan di master produk."}
+{"id":"dq21","lang":"en","label":"INCONSISTENT_CATEGORY","text":"Branch is written as 'cakung', ' CAKUNG ' and 'Cakung' across rows for the same branch."}
+{"id":"dq22","lang":"en","label":"INCONSISTENT_CATEGORY","text":"Payment terms appear as 'NET30', 'NET 30' and '30 DAYS', different spellings of one term."}
+{"id":"dq23","lang":"id","label":"INCONSISTENT_CATEGORY","text":"Nama departemen ditulis berbeda-beda: 'AFTER SALES', 'after sales', ' After Sales '."}
+{"id":"dq24","lang":"id","label":"INCONSISTENT_CATEGORY","text":"Kode gudang tertulis 'Wh-Tgr-01' dan 'WH-TGR-01' untuk gudang yang sama."}
+{"id":"dq25","lang":"en","label":"INVALID_BUSINESS_STATUS","text":"transaction_status is 'SHIPPED', which is not one of the allowed statuses COMPLETED, CANCELLED or PENDING."}
+{"id":"dq26","lang":"en","label":"INVALID_BUSINESS_STATUS","text":"Employee employment_status is 'FIRED_TEMP', a status that is not defined in the allowed list."}
+{"id":"dq27","lang":"id","label":"INVALID_BUSINESS_STATUS","text":"Status PO bernilai 'DIBATALKAN SEBAGIAN', tidak termasuk status yang diizinkan."}
+{"id":"dq28","lang":"id","label":"INVALID_BUSINESS_STATUS","text":"service_status berisi 'MENUNGGU TEKNISI', status ini tidak terdaftar di daftar status resmi."}
+{"id":"dq29","lang":"en","label":"TYPE_CONVERSION_ERROR","text":"Loading failed: value '1.2E+400' overflowed the NUMERIC(18,2) column during type casting."}
+{"id":"dq30","lang":"en","label":"TYPE_CONVERSION_ERROR","text":"Casting active_flag 'MAYBE' to BOOLEAN raised a conversion error."}
+{"id":"dq31","lang":"id","label":"TYPE_CONVERSION_ERROR","text":"Gagal mengubah tipe data: nilai 'Rp 1.353.708,00' tidak bisa dikonversi ke NUMERIC."}
+{"id":"dq32","lang":"id","label":"TYPE_CONVERSION_ERROR","text":"Konversi check_in '25:61 PM' ke tipe TIME gagal."}
+{"id":"dq33","lang":"en","label":"BUSINESS_RULE_VIOLATION","text":"Expense amount is -50000; expenses must be positive."}
+{"id":"dq34","lang":"en","label":"BUSINESS_RULE_VIOLATION","text":"Check-out time 7:00 AM is earlier than check-in time 8:30 AM on the same day."}
+{"id":"dq35","lang":"id","label":"BUSINESS_RULE_VIOLATION","text":"Quantity penjualan bernilai -1, jumlah barang terjual tidak boleh negatif."}
+{"id":"dq36","lang":"id","label":"BUSINESS_RULE_VIOLATION","text":"Tanggal pengiriman yang diharapkan lebih awal dari tanggal PO dibuat."}
+{"id":"dq37","lang":"en","label":"UNKNOWN_ERROR","text":"The pipeline stopped with an unexpected exception and no further detail was logged."}
+{"id":"dq38","lang":"en","label":"UNKNOWN_ERROR","text":"Record could not be processed for an unidentified reason; investigation needed."}
+{"id":"dq39","lang":"id","label":"UNKNOWN_ERROR","text":"Proses berhenti karena kesalahan yang tidak diketahui penyebabnya."}
+{"id":"dq40","lang":"id","label":"UNKNOWN_ERROR","text":"Terjadi error tak terduga tanpa keterangan tambahan di log."}

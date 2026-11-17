@@ -13,16 +13,17 @@ BLOCKED = waits on a human step (see [HUMAN-STEPS.md](HUMAN-STEPS.md)).
 | 1 | Environment discovery | DONE | Tool inventory below; n8n workflows/credentials listed read-only; raw files checksummed | — | — |
 | 2 | Repository & skill integration | PARTIAL | Already present: `caveman@caveman` plugin, `rtk 0.49.0`, `data-analytics-skills@claude-code-skills`, `data-engineering@data-with-baraa` + `*@data-engineering-skills` plugins | Inspect & verify the two farisradifana skill repos are the installed sources; install CodeGraph and Graphify after README/LICENSE review | H2 (approve installs) |
 | 3 | Data profiling | DONE | `scripts/profile_raw.py` → `reports/profiling/` (inventory, per-table JSON, FK checks, summary). Raw SHA-256 verified unchanged after run (10/10 OK) | Data dictionary draft (`docs/05-data-dictionary.md`) | — |
-| 4 | Architecture & blueprint | TODO | Findings below define the rules | Target DDL, data contracts, error-code catalogue, ETL/notification/analytics design docs | H1 decision on date-format rule (D1) |
+| 4 | Architecture & blueprint | TODO | Findings below define the rules | Target DDL, data contracts, error-code catalogue, ETL/notification/analytics design docs | D1–D6 data-rule decisions |
 | 5 | Python ETL | TODO | — | extract/standardize/cleanse/dedupe/validate/quarantine/transform/load/notify/pipeline/reprocess modules + tests | Install `psycopg[binary]`, `pandera`, `pytest` (I can do it on approval) |
-| 6 | PostgreSQL | BLOCKED | Not installed: no `psql`, no service, nothing on port 5432 | DB/user/schema `dataset`, tables, constraints, indexes, migrations, load | **H1** install PostgreSQL |
+| 6 | PostgreSQL (Supabase) | BLOCKED | Decision: Supabase hosted Postgres 17. Project "AI Data Analyst Astra" created by user, status healthy (ap-southeast-1). Local install no longer needed | Migrations: roles, schema `dataset`, tables, RLS, grants; transactional load | **H1** Session-pooler values, CA cert, role passwords in `.env` |
 | 7 | Telegram alerts | BLOCKED | No Telegram credential in n8n; no bot config in project | Notifier with retry/backoff/rate limit; test each alert category | **H3** bot token, chat ID, thread ID; approve test message |
-| 8 | Looker Studio | BLOCKED | — | Dashboard specs, KPI defs, read-only reporting user, connectivity doc | **H5** choose secure connectivity option; build report in browser |
-| 9 | n8n + Gemini AI Agent | PARTIAL | n8n 2.35.7 installed; Gemini credential exists (`googlePalmApi`); existing `Customer service agent` workflow already uses Agent + Gemini + window memory (reference only, not modified). **No existing Radifan Telegram bot workflow found in this n8n instance** | New workflows: Looker Studio assistant, Telegram assistant, read-only SQL tool, Postgres chat memory | **H3**, **H4** (Gemini key check, Telegram allowlist, n8n Postgres credential) |
-| 10 | Documentation & automation | PARTIAL | `docs/STATUS.md`, `docs/HUMAN-STEPS.md`, profiling summary | docs 00–21, Task Scheduler job, backup/restore runbook | **H6** approve scheduled task |
+| 8 | Looker Studio | BLOCKED | Connectivity decided: Looker Studio → Supabase Session pooler, SSL, read-only `astra_reporting` | Dashboard specs, KPI defs | **H5** build report in browser after Phase 6 |
+| 9 | n8n + LLM AI Agent (`LLM_MODEL`, Gemini first) | PARTIAL | n8n 2.35.7 installed; Gemini credential exists (`googlePalmApi`); existing `Customer service agent` workflow already uses Agent + Gemini + window memory (reference only, not modified). **No existing Radifan Telegram bot workflow found in this n8n instance** | New workflows: Looker Studio assistant, Telegram assistant, read-only SQL tool, Postgres chat memory | **H3**, **H4** (`LLM_MODEL`/`LLM_MODEL_KEY`, Telegram allowlist, n8n Postgres credential); tell Claude where the existing bot runs |
+| 10 | Documentation & automation | PARTIAL | `docs/STATUS.md`, `docs/HUMAN-STEPS.md`, profiling summary, Laya docs 22–29, `.env.example` | docs 00–21, Task Scheduler job, backup/restore runbook | **H6** approve scheduled task |
 | 11 | Testing & final review | TODO | — | 17 test cases from spec, reconciliation, final report | — |
 | 12 | Global skill | TODO | — | `%USERPROFILE%\.claude\skills\astra-enterprise-data-platform\SKILL.md` + discovery check | — |
-| — | GitHub backup | IN PROGRESS | Remote `farisradifana/ai-data-analyst-astra` inspected: 1 commit, README only | Push project (raw-data/, .env, data outputs excluded) | **H7** confirm raw-data stays out of Git |
+| L | Laya local decision engine | PARTIAL | `laya==0.4.35` in `.venv-laya` (CPU torch 2.15.0); 3 checkpoints benchmarked; multilingual selected; engine, policy, fallback, eval harness; 24 unit + 5 real-model tests pass (offline) | FastAPI `api.py`, n8n `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing, held-out eval set | Approve `fastapi`/`uvicorn`; decide whether to keep auto-routing off |
+| — | GitHub backup | DONE | Public repo `farisradifana/ai-data-analyst-astra` (user decision: public prototype); raw-data, `.env`, secrets, weights excluded | Push after each milestone | — |
 
 ## Phase 1 — environment inventory (verified 2026-11-17)
 
@@ -71,3 +72,14 @@ no PostgreSQL credential. Nothing was changed.
 
 Open decisions: D1 date rule, D2 payment-terms mapping, D3 negative/zero quantity policy,
 D4 negative amounts (refunds vs errors). Defaults proposed in [HUMAN-STEPS.md](HUMAN-STEPS.md).
+
+## Laya — evaluation headline (2026-11-17, details in docs/27-laya-evaluation.md)
+
+| Checkpoint | DQ acc (EN/ID) | Routing acc (EN/ID) | p50 latency | Peak RAM |
+|---|---|---|---|---|
+| multilingual (selected) | 0.600 (0.65/0.55) | 0.688 (0.81/0.56) | ~1.0–1.2 s | ~2.2 GB |
+| english | 0.575 (0.70/0.45) | 0.625 (0.81/0.44) | ~2.7 s | ≤3.0 GB |
+| typed-decisions | 0.600 (0.75/0.45) | 0.719 (0.88/0.56) | ~2.9–3.5 s | ≤3.0 GB |
+
+Auto-routing is disabled for both tasks (`config/laya_policy.json`). The set is small
+(40 + 32 items), so these numbers are indicative only.

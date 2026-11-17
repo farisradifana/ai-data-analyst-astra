@@ -1,0 +1,11 @@
+{
+  "evaluation_version": "2026-11-17-v1",
+  "checkpoint": "multilingual",
+  "laya_version": "0.4.35",
+  "source": "reports/laya/benchmark.json (40 DQ + 32 routing synthetic items)",
+  "note": "Both tasks DISABLED: accuracy too low and the labeled set is too small to calibrate. Thresholds are proposals only. Enabled=false means nothing is auto-accepted.",
+  "tasks": {
+    "dq_category": {"enabled": false, "high": 0.8, "medium": 0.5},
+    "agent_route": {"enabled": false, "high": 0.8, "medium": 0.5}
+  }
+}

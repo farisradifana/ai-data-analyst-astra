@@ -6,28 +6,40 @@ untracked `F:\data-analyst-astra\.env` file yourself. Mark each box when done.
 
 ---
 
-## H1 — Install PostgreSQL (blocks Phase 6) — ~15 min
+## H1 — Supabase PostgreSQL (replaces local install; blocks Phase 6)
 
-1. Download the Windows installer for PostgreSQL 17 from https://www.postgresql.org/download/windows/
-   (EDB installer).
-2. Run it as administrator. Keep the defaults:
-   - Components: PostgreSQL Server, pgAdmin 4, Command Line Tools (Stack Builder not needed).
-   - Port: `5432`. Locale: default.
-   - Set a strong password for the `postgres` superuser. Store it in your password manager.
-     **Do not** reuse `astradata-analyst`.
-3. Add `C:\Program Files\PostgreSQL\17\bin` to your user PATH, then open a new terminal and run:
-   ```bash
-   psql --version
+Decision 2026-11-17: PostgreSQL is hosted on Supabase so Looker Studio can reach it.
+Project "AI Data Analyst Astra" exists (region ap-southeast-1, Postgres 17, status healthy).
+The project ref is kept in `.env` only (`SUPABASE_PROJECT_REF`), not in this public repo.
+
+Deviation from the original spec: Supabase's database name is always `postgres`, not
+`astra_analytics`. Schema `dataset` and roles `astra_analyst` / `astra_reporting` are unchanged.
+
+1. Supabase dashboard → project → **Connect** → **Session pooler**. Copy host, port `5432`,
+   user format `<role>.<project_ref>`. Do not use the direct host (IPv6 only) or port 6543
+   (transaction pooler; breaks prepared statements).
+2. Settings → Database → **Download SSL certificate** (`prod-ca-2021.crt`). Save it to
+   `F:\data-analyst-astra\secrets\supabase-ca.crt` (gitignored).
+3. Generate two long random passwords (password manager). The password given in the original spec
+   is too weak for an internet-facing database; use it only for a local DB.
+4. Write them into `F:\data-analyst-astra\.env`:
    ```
-4. Confirm it listens only locally. In `C:\Program Files\PostgreSQL\17\data\postgresql.conf`
-   `listen_addresses` should be `'localhost'` (default). Do not change it to `'*'`.
-5. Tell Claude "PostgreSQL installed". Claude then creates `astra_analytics`, role
-   `astra_analyst`, schema `dataset`, and a read-only `astra_reporting` role via scripts.
-   You run the one superuser step yourself, because it needs the `postgres` password:
-   ```bash
-   psql -U postgres -h localhost -f sql/000_bootstrap_superuser.sql
+   SUPABASE_PROJECT_REF=...
+   DATABASE_HOST=aws-0-ap-southeast-1.pooler.supabase.com
+   DATABASE_PORT=5432
+   DATABASE_NAME=postgres
+   DATABASE_SSLMODE=verify-full
+   DATABASE_SSLROOTCERT=secrets/supabase-ca.crt
+   DATABASE_USER=astra_analyst
+   DATABASE_PASSWORD=...
+   REPORTING_DB_USER=astra_reporting
+   REPORTING_DB_PASSWORD=...
    ```
-   (Claude will create this file; review it before running.)
+5. Claude writes `sql/migrations/*.sql` (roles, schema `dataset`, tables, RLS, grants) and applies
+   them through the Supabase connector after you approve. Role passwords are set by you in the
+   SQL editor (`ALTER ROLE astra_analyst PASSWORD '...'`) so they never pass through chat.
+6. Free tier note: the project pauses after ~7 days without activity. Open the dashboard or run
+   the pipeline weekly, or upgrade.
 
 - [ ] H1 done
 
@@ -46,9 +58,9 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
 2. Add the bot to the target group as **admin** with "Post messages" (and "Manage topics" not required).
 3. Group privacy: BotFather → bot → Bot Settings → Group Privacy → **Turn off** only if the bot
    must read normal group messages. For alerts only, leave it on.
-4. Find IDs. The link `https://t.me/c/3979255139/2332` suggests chat ID `-1003979255139` and
-   topic (thread) ID `2332`, but this is an inference. Verify: post any message in that topic,
-   then open in your browser (replace `<TOKEN>`):
+4. Find IDs. A private-group link `https://t.me/c/<internal_id>/<topic_id>` usually maps to chat
+   ID `-100<internal_id>` and thread ID `<topic_id>`, but treat that as an inference. Verify: post
+   any message in that topic, then open in your browser (replace `<TOKEN>`):
    `https://api.telegram.org/bot<TOKEN>/getUpdates`
    Read `message.chat.id` and `message.message_thread_id`.
 5. Write in `F:\data-analyst-astra\.env`:
@@ -67,7 +79,9 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
 
 1. Get/confirm a Gemini API key at https://aistudio.google.com/app/apikey. Check the billing
    tier you accept (free tier has rate limits; paid needs your approval).
-2. Put `GEMINI_API_KEY=...` and `GEMINI_MODEL=...` (e.g. a current Gemini Flash model) in `.env`.
+2. Put `LLM_MODEL=...` (e.g. a current Gemini Flash model id) and `LLM_MODEL_KEY=...` in `.env`.
+   Names are provider-neutral on purpose: Gemini is the first provider, another LLM can replace it
+   later by changing these two values and the n8n Chat Model node.
 3. n8n already has a credential named "Google Gemini(PaLM) Api account". Confirm it is the key
    to use, or create a new one: n8n → Credentials → New → Google Gemini(PaLM) API.
 4. Set `N8N_ENCRYPTION_KEY` once (keep it in your password manager; losing it makes stored n8n
@@ -91,8 +105,11 @@ Looker Studio runs in Google's cloud. It cannot reach `localhost:5432`. Pick one
 | B. Export clean CSVs to Google Sheets / BigQuery on schedule, Looker Studio reads that | good, no DB exposure | free | low |
 | C. Expose local Postgres with port-forward + SSL + IP allow-list | risky on a home/office PC | free | medium, **not recommended** |
 
-Reply with A, B or C. Then in https://lookerstudio.google.com: Create → Data source → PostgreSQL
-(A) or Google Sheets/BigQuery (B); sign in with your own Google account. Claude cannot log in for you.
+**Decided 2026-11-17: option A with Supabase.** After Phase 6 loads data:
+https://lookerstudio.google.com → Create → Data source → PostgreSQL → host/port from the Session
+pooler, database `postgres`, user `astra_reporting.<project_ref>`, its password, tick
+**Enable SSL** and upload `supabase-ca.crt`. Sign in with your own Google account; Claude cannot
+log in for you. Do not share the data source with "Anyone with link" editing rights.
 
 - [ ] H5 done
 
@@ -107,15 +124,17 @@ Claude will propose a Windows Task Scheduler entry (e.g. daily 02:00 incremental
 
 Backup target: `https://github.com/farisradifana/ai-data-analyst-astra`.
 Excluded from Git by `.gitignore`: `raw-data/`, `data/processed/`, `data/quarantine/`, `.env`,
-logs, DB dumps. Reason: spec forbids committing raw customer records and secrets. If the repo is
-**public**, confirm that is intended; private is recommended. Check: GitHub → repo → Settings → General → Danger Zone → visibility.
+logs, DB dumps, `secrets/`, model weights. Reason: spec forbids committing raw customer records and secrets.
+**Decided 2026-11-17: repo stays public (prototype).** Consequence: no chat IDs, thread IDs, bot
+tokens, project refs or passwords are written in any committed file; they live in `.env` only.
 
-- [ ] H7 done
+- [x] H7 done
 
 ## H8 — Navicat check (after H1)
 
-New Connection → PostgreSQL → Host `localhost`, Port `5432`, Initial DB `astra_analytics`,
-User `astra_analyst`, password from your `.env`. Test Connection → you should see schema `dataset`.
+New Connection → PostgreSQL → Host = Session pooler host, Port `5432`, Initial DB `postgres`,
+User `astra_analyst.<project_ref>`, password from your `.env`. SSL tab → Use SSL, CA cert =
+`secrets\supabase-ca.crt`, verify server. Test Connection → you should see schema `dataset`.
 
 - [ ] H8 done
 
