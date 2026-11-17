@@ -1,15 +1,15 @@
 """Quarantine rule catalog. Every quarantined or duplicate row carries exactly one rule_id.
 
-Mirrors table dataset.quarantine_rule (seeded in
-sql/migrations/20261117100000_quarantine_rule_catalog.sql); tests/etl/test_rules.py keeps them in sync.
+Mirrors table dataset.quarantine_rule (latest seed in
+sql/migrations/20261118120000_live_quarantine.sql); tests/etl/test_rules.py keeps them in sync.
 
-graduation_path says how a record becomes valid data:
-  FIX_SOURCE        correct the value in the source file (raw-data/<table>.csv), then rerun the ETL.
-  AUTO_WITH_PARENT  nothing to fix on this row; it loads on the next run once its parent row
-                    (see depends_on) has graduated.
-  NOT_NEEDED        exact copy of a row that already loaded; kept for audit only.
-On the rerun, the old OPEN record becomes GRADUATED (row now loaded), SUPERSEDED (still failing;
-a new OPEN record replaces it) or DISMISSED (row no longer in the source file).
+graduation_path says how a quarantined row becomes valid data:
+  FIX_IN_QUARANTINE  edit the value in the quarantine row (astra fix set); the next ETL run
+                     rechecks it, loads it, archives it as GRADUATED and removes it from quarantine.
+  AUTO_WITH_PARENT   nothing to fix on this row; it graduates on the run its parent row
+                     (see depends_on) graduates.
+  NOT_NEEDED         exact copy of a row already loaded or held; never loaded, archived as
+                     DUPLICATE_DROPPED.
 """
 from __future__ import annotations
 
@@ -27,42 +27,42 @@ class Rule:
 
 
 _RULES = (
-    Rule("REQUIRED_FIELD_MISSING", "MISSING_REQUIRED_FIELD", None, "FIX_SOURCE",
+    Rule("REQUIRED_FIELD_MISSING", "MISSING_REQUIRED_FIELD", None, "FIX_IN_QUARANTINE",
          "Required value is blank or a placeholder (N/A, NA, NULL, NONE, -, UNKNOWN, TBD).",
-         "Fill in the real value in the source file, then rerun the ETL."),
-    Rule("DATE_FORMAT_INVALID", "INVALID_DATE_FORMAT", "D1", "FIX_SOURCE",
+         "Fill in the real value with astra fix set; the next ETL run rechecks the row."),
+    Rule("DATE_FORMAT_INVALID", "INVALID_DATE_FORMAT", "D1", "FIX_IN_QUARANTINE",
          "Date or time is not in an accepted format or is not a real calendar date.",
-         "Write the date as YYYY-MM-DD (time as HH:MM), then rerun."),
-    Rule("NUMERIC_VALUE_INVALID", "INVALID_NUMERIC_VALUE", "D3", "FIX_SOURCE",
+         "Set the date as YYYY-MM-DD (time as HH:MM) with astra fix set."),
+    Rule("NUMERIC_VALUE_INVALID", "INVALID_NUMERIC_VALUE", "D3", "FIX_IN_QUARANTINE",
          "Number cannot be parsed, is a word, or is out of range (quantity <= 0, percent outside 0-100).",
-         "Enter a valid number in range, then rerun."),
-    Rule("CATEGORY_VALUE_INVALID", "INVALID_CATEGORY", None, "FIX_SOURCE",
+         "Set a valid number in range with astra fix set."),
+    Rule("CATEGORY_VALUE_INVALID", "INVALID_CATEGORY", None, "FIX_IN_QUARANTINE",
          "Value is outside the allowed set, or an identifier has an invalid format.",
-         "Use one of the allowed values listed in docs/30-database-schema.md, then rerun."),
-    Rule("NEGATIVE_AMOUNT", "BUSINESS_RULE_VIOLATION", "D4", "FIX_SOURCE",
+         "Set one of the allowed values (docs/30-database-schema.md) with astra fix set."),
+    Rule("NEGATIVE_AMOUNT", "BUSINESS_RULE_VIOLATION", "D4", "FIX_IN_QUARANTINE",
          "Money amount (price, cost, salary, expense) is negative.",
-         "Enter the correct non-negative amount, then rerun. Refunds need their own record type."),
-    Rule("MANAGER_IS_SELF", "BUSINESS_RULE_VIOLATION", None, "FIX_SOURCE",
+         "Set the correct non-negative amount with astra fix set. Refunds need their own record type."),
+    Rule("MANAGER_IS_SELF", "BUSINESS_RULE_VIOLATION", None, "FIX_IN_QUARANTINE",
          "Employee is listed as their own manager.",
-         "Set the correct manager_id, or leave it blank (D6), then rerun."),
-    Rule("WAREHOUSE_CODE_FORMAT", "INVALID_CATEGORY", None, "FIX_SOURCE",
+         "Set the correct manager_id, or blank it (D6), with astra fix set."),
+    Rule("WAREHOUSE_CODE_FORMAT", "INVALID_CATEGORY", None, "FIX_IN_QUARANTINE",
          "Warehouse code does not match WH-AAA-00.",
-         "Correct the warehouse code, then rerun."),
-    Rule("CHECKOUT_BEFORE_CHECKIN", "BUSINESS_RULE_VIOLATION", None, "FIX_SOURCE",
+         "Set a code like WH-AAA-00 with astra fix set."),
+    Rule("CHECKOUT_BEFORE_CHECKIN", "BUSINESS_RULE_VIOLATION", None, "FIX_IN_QUARANTINE",
          "Attendance check_out is earlier than check_in.",
-         "Correct the check-in or check-out time, then rerun."),
-    Rule("DUPLICATE_PRIMARY_KEY", "DUPLICATE_PRIMARY_KEY", "D5", "FIX_SOURCE",
-         "Same primary key as an earlier row but different content; the earlier row was loaded.",
-         "Give this row its own key, or remove it if the earlier row is correct (see depends_on), then rerun."),
+         "Correct check_in or check_out with astra fix set."),
+    Rule("DUPLICATE_PRIMARY_KEY", "DUPLICATE_PRIMARY_KEY", "D5", "FIX_IN_QUARANTINE",
+         "Same primary key as a row already loaded (earlier in the file or from an earlier file) but different content.",
+         "Give this row its own key with astra fix set, or remove it with astra fix drop if the loaded row is correct."),
     Rule("ORPHAN_PARENT_QUARANTINED", "ORPHAN_FOREIGN_KEY", None, "AUTO_WITH_PARENT",
-         "Referenced parent row exists in the source but is itself quarantined.",
-         "Fix the parent row named in depends_on; this row graduates on the same rerun."),
-    Rule("ORPHAN_KEY_NOT_IN_SOURCE", "ORPHAN_FOREIGN_KEY", None, "FIX_SOURCE",
-         "Referenced key does not exist in the parent source file.",
-         "Add the missing parent row, correct the key, or blank it if the column allows it, then rerun."),
+         "Referenced parent row is itself in quarantine.",
+         "Fix the parent named in depends_on; this row graduates on the same run."),
+    Rule("ORPHAN_KEY_NOT_IN_SOURCE", "ORPHAN_FOREIGN_KEY", None, "FIX_IN_QUARANTINE",
+         "Referenced key is not loaded and not in quarantine.",
+         "Graduates by itself when a later file brings the parent; otherwise correct or blank the key with astra fix set."),
     Rule("EXACT_DUPLICATE_ROW", "EXACT_DUPLICATE_ROW", "D5", "NOT_NEEDED",
-         "Exact copy of an earlier row in the same file; the first copy was loaded.",
-         "No action. Kept for audit; status is DISMISSED on insert."),
+         "Exact copy of a row already loaded or already in quarantine.",
+         "No action. Not loaded; archived as DUPLICATE_DROPPED."),
 )
 
 RULES: dict[str, Rule] = {r.rule_id: r for r in _RULES}

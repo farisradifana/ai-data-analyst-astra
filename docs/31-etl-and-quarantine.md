@@ -15,14 +15,44 @@ Run these from the project folder, in PowerShell or cmd.
 .\astra etl
 ```
 
-- The first command validates and reads fixes, but writes nothing to the database.
-- The second skips the database entirely.
+- The first command reads the database and validates, but writes nothing.
+- The second skips the database entirely and treats every file as new.
 - The third loads the data as `astra_analyst`, over `verify-full` SSL.
 - Running `.\astra` with no command only prints the usage. It never starts a load.
+- Only one load runs at a time. A second one stops with "another ETL run is in progress".
 
-The run reads `raw-data/<table>.csv` and connects with `.env` (see doc 30 and `scripts/check_db_connection.py`).
 It writes a counts-only summary to `reports/etl/last_run_summary.{json,md}`, which contains no record content.
-A full load takes about 100 s.
+
+## How a run works (since migration 0008, 2026-11-18)
+
+**Each source file is read once.**
+
+- Files live in `raw-data/<table>.csv` (the first delivery) and `raw-data/<table>/*.csv` (later deliveries).
+- Put each day's file in the table's folder, for example `raw-data/sales_transactions/2026-11-19.csv`.
+  Files in a folder are read in name order, so a date name keeps them in order.
+- Every file read is registered in `dataset.source_file` with its SHA-256. A registered file is skipped on later runs.
+- If a registered file changes, the run stops with an error. Never edit a file that was loaded.
+  Restore it, and send new or corrected data as a new file.
+- A new file with the same content as a loaded file is skipped.
+
+**Each run, per table (parents first), checks one list of rows:**
+
+1. every row still in quarantine, with the edits made by `.\astra fix set`;
+2. the rows of the new files.
+
+Then:
+
+- A row that passes is loaded into its table.
+  If it came from quarantine, it is copied to `dataset.quarantine_archive` as `GRADUATED` and deleted from quarantine.
+- A quarantined row that still fails stays, with its labels refreshed (rule, columns, `depends_on`, `last_checked_run_id`).
+- A new row that fails is added to quarantine.
+- An exact duplicate is never loaded. It goes straight to the archive as `DUPLICATE_DROPPED`.
+
+So `dataset.quarantine_record` holds **only the rows that still need fixing**, one row per problem row.
+
+**Strict keys:** a new row whose key is already loaded is never written over the loaded row.
+- With the same values it is an `EXACT_DUPLICATE_ROW`, which is dropped.
+- With different values it is quarantined as `DUPLICATE_PRIMARY_KEY` (`depends_on` = `<table>:<key>`).
 
 Modules in `src/astra_etl/`:
 
@@ -31,9 +61,14 @@ Modules in `src/astra_etl/`:
 | `clean.py` | Value cleaners. Decisions D1–D4, D6. |
 | `spec.py` | Mapping per table (CSV column → cleaner → DB column), FKs, cross-column rules |
 | `rules.py` | Quarantine rule catalog. Mirrors `dataset.quarantine_rule`. |
-| `fix.py` | `.\astra fix` commands: list / show / set / off / status for fixes |
-| `transform.py` | Exact duplicates, cleaning, row rules, PK conflicts, FK checks. Asserts `read = loaded + quarantined + duplicate`. |
-| `load.py` | One transaction. Upserts with no DELETE, then the quarantine lifecycle, `etl_run_file` and `dq_check_result`. |
+| `transform.py` | File discovery and validation, no database. Asserts both reconciliations (below). |
+| `load.py` | Reads the state (registered files, quarantine, loaded keys). Writes one run in one transaction. |
+| `fix.py` | `.\astra fix` commands: list / show / set / drop / history |
+
+Both reconciliations are checked on every run:
+- per new file: `read = loaded + quarantined + duplicate` (stored in `etl_run_file`);
+- per table: `quarantine rows checked = graduated + still in quarantine + dropped as duplicate`
+  (stored in `dq_check_result` as `quarantine_recheck`).
 
 ## Decision: strict quarantine (2026-11-17)
 
@@ -44,130 +79,125 @@ They are not loaded with a NULL price.
 
 ## Every row is labelled
 
-Each quarantined or duplicate row in `dataset.quarantine_record` carries these labels:
+Each row in `dataset.quarantine_record` carries these labels:
 
 - **`rule_id`**: one rule from `dataset.quarantine_rule`. The rule holds the description, the D-decision and the remediation.
 - **`failed_columns`**: the column names to fix. Values are never stored here.
-- **`depends_on`**: what the row waits for, either `products:PRD00012` or `row:<source line>` of the row that was kept.
-- **`raw_record`**: the original source row, so it can be fixed and reprocessed. It may contain PII and is analyst-only.
+- **`depends_on`**: what the row waits for: `products:PRD00012`, or `row:<file>:<line>` of the row that was kept.
+- **`raw_record`**: the source row, as edited. The ETL rechecks it every run. It may contain PII and is analyst-only.
+- **`corrected_columns`**: the columns an analyst edited.
+- **`source_file`**, **`source_row_number`**: where the row came from.
 
 | rule_id | graduation_path | Meaning |
 |---|---|---|
-| REQUIRED_FIELD_MISSING | FIX_SOURCE | Required value is blank, or a placeholder such as N/A or TBD |
-| DATE_FORMAT_INVALID | FIX_SOURCE | Date or time is not valid (D1) |
-| NUMERIC_VALUE_INVALID | FIX_SOURCE | Not a number, a word, or out of range (D3) |
-| CATEGORY_VALUE_INVALID | FIX_SOURCE | Value is outside the allowed set |
-| NEGATIVE_AMOUNT | FIX_SOURCE | Negative money amount (D4) |
-| MANAGER_IS_SELF | FIX_SOURCE | Employee is listed as their own manager |
-| WAREHOUSE_CODE_FORMAT | FIX_SOURCE | Code is not `WH-AAA-00` |
-| CHECKOUT_BEFORE_CHECKIN | FIX_SOURCE | Check-out time is earlier than check-in |
-| DUPLICATE_PRIMARY_KEY | FIX_SOURCE | Same key as an earlier row but different content (D5) |
-| ORPHAN_PARENT_QUARANTINED | AUTO_WITH_PARENT | Parent row exists but is quarantined |
-| ORPHAN_KEY_NOT_IN_SOURCE | FIX_SOURCE | Parent key is not in the source at all |
-| EXACT_DUPLICATE_ROW | NOT_NEEDED | Identical copy. The first copy loaded. Kept for audit. |
+| REQUIRED_FIELD_MISSING | FIX_IN_QUARANTINE | Required value is blank, or a placeholder such as N/A or TBD |
+| DATE_FORMAT_INVALID | FIX_IN_QUARANTINE | Date or time is not valid (D1) |
+| NUMERIC_VALUE_INVALID | FIX_IN_QUARANTINE | Not a number, a word, or out of range (D3) |
+| CATEGORY_VALUE_INVALID | FIX_IN_QUARANTINE | Value is outside the allowed set |
+| NEGATIVE_AMOUNT | FIX_IN_QUARANTINE | Negative money amount (D4) |
+| MANAGER_IS_SELF | FIX_IN_QUARANTINE | Employee is listed as their own manager |
+| WAREHOUSE_CODE_FORMAT | FIX_IN_QUARANTINE | Code is not `WH-AAA-00` |
+| CHECKOUT_BEFORE_CHECKIN | FIX_IN_QUARANTINE | Check-out time is earlier than check-in |
+| DUPLICATE_PRIMARY_KEY | FIX_IN_QUARANTINE | Same key as a loaded row but different content (D5) |
+| ORPHAN_PARENT_QUARANTINED | AUTO_WITH_PARENT | Parent row is itself in quarantine |
+| ORPHAN_KEY_NOT_IN_SOURCE | FIX_IN_QUARANTINE | Parent key is not loaded and not in quarantine. Graduates by itself when a later file brings the parent. |
+| EXACT_DUPLICATE_ROW | NOT_NEEDED | Identical copy of a loaded or held row. Never loaded; archived. |
 
 ## How a row graduates to valid data
 
-Fix quarantined data in the database, not in the CSV.
-Each fix is one cell, stored in `dataset.quarantine_correction` (migration 0007).
-Every ETL run applies the active fixes on top of the raw row, then validates it again.
-The source files in `raw-data/` are never changed, so they stay as the audit trail.
+Fix the value inside the quarantine row. The source files are never changed.
 
-1. **Find** what to fix. `list` shows table, key, rule, the columns to fix and what the row waits for.
-   It shows no values.
+1. **Find** what to fix. `list` shows the quarantine id, table, key, rule, the columns to fix,
+   what the row waits for, and the file and line. It shows no values.
 
    ```powershell
    .\astra fix list --table products
    ```
 
-2. **Look** at one row: its rule, how to fix it, and the current values.
-   The failing columns are marked `<-`.
+2. **Look** at one row: its rule, how to fix it, the current values and earlier edits.
+   The failing columns are marked `<- fix`.
    The output can contain personal data, so use it on your own machine only.
 
    ```powershell
-   .\astra fix show products PRD00148
+   .\astra fix show products PRD00012
    ```
 
 3. **Fix** the value. Use the column name from the source CSV. `--reason` is required.
 
    ```powershell
-   .\astra fix set products PRD00148 list_price 150000 --reason "price from catalogue"
+   .\astra fix set products PRD00012 list_price 250000 --reason "price list 2024"
    ```
 
+   - The old value is saved in `dataset.quarantine_edit`, with the new value, the reason, the user and the time.
    - `--blank` makes the cell empty instead of setting a value.
-   - `--line N` limits the fix to one source line. Use it when two rows share a key (`DUPLICATE_PRIMARY_KEY`).
-     For example, give the second row a new key with `set sales_transactions SAL00000004 transaction_id SAL00000009 --line 8`.
-   - Setting the same cell again replaces the earlier fix.
-   - `off <correction_id>` withdraws a fix. Rows are never deleted: the fix is only marked inactive.
+   - When several rows share a key (`DUPLICATE_PRIMARY_KEY`), add `--id N` with the id from `list` or `show`.
+     For example, give the second row a new key:
+     `.\astra fix set sales_transactions SAL00000004 transaction_id SAL00000009 --id 812 --reason "..."`.
+   - To undo an edit, set the old value again (see `history`).
+   - Put double quotes around any value that contains spaces, commas or `=`.
    - For `AUTO_WITH_PARENT` rows, fix the parent named in `depends_on`.
      All the rows waiting on that parent graduate in the same run.
-4. **Rerun** the ETL with `.\astra etl`.
-   Put double quotes around any value that contains spaces, commas or `=`.
-   Each fix gets a `last_outcome`:
 
-   | Outcome | Meaning |
-   |---|---|
-   | `LOADED` | The fixed row passed validation and is in the valid table |
-   | `STILL_QUARANTINED` | The fixed row still fails |
-   | `KEY_NOT_FOUND` | No source row has that key |
-   | `COLUMN_UNKNOWN` | The table has no column with that name |
+4. **Remove** a row that should never load, for example a wrong duplicate of a loaded row:
 
-   The earlier OPEN quarantine records change status:
-   - `GRADUATED`: the key is now loaded into the valid table.
-   - `SUPERSEDED`: the key still fails. A new OPEN record replaces it, possibly under a different rule, and its `corrected_columns` shows what was fixed.
-   - `DISMISSED`: the row is no longer in the source file.
+   ```powershell
+   .\astra fix drop 812 --reason "same sale as the loaded row"
+   ```
 
-   `resolved_run_id` records which run made the change.
-5. **Track** progress:
-   - `.\astra fix status`, or the view `v_correction_status`.
-   - `v_quarantine_lifecycle`, which counts records per table, rule and status.
+   It is archived as `DROPPED` with your reason, and deleted from quarantine. Loaded data is not touched.
 
-Fixes are kept across runs.
-A fix also overrides a value that was later corrected in the CSV, until you withdraw it.
-A row with a blank primary key cannot be fixed this way. Fix it in the CSV instead.
+5. **Rerun** the ETL with `.\astra etl`.
+   Fixed rows that pass are loaded and leave quarantine. The others stay, with their new rule if it changed.
+
+6. **Track** progress:
+   - `.\astra fix history` lists edits, newest first, and whether each row graduated.
+   - The view `v_quarantine_lifecycle` counts rows per table and rule: `OPEN` (in quarantine) and
+     `GRADUATED` / `DUPLICATE_DROPPED` / `DROPPED` / `SUPERSEDED` (archive).
+   - The view `v_quarantine_open` counts rows in quarantine per rule.
 
 **Access:**
-- `astra_analyst` (the `fix` command) can read and write fixes.
-- `astra_reporting` sees only the fix metadata: table, column, active flag, outcome and dates.
-  It does not see the key, the value, the reason or the author.
-- Edits made in the Supabase table editor run as `postgres`. The ETL picks them up the same way.
+- `astra_analyst` may delete rows from `quarantine_record` only, and always through the archive.
+  Every other table stays insert/update only.
+- `quarantine_archive`, `quarantine_edit` and `source_file` are append-only for `astra_analyst`.
+- `astra_reporting` sees the archive and edit metadata (table, file, rule, columns, resolution, dates).
+  It does not see keys, values, reasons or authors.
+- The archive keeps labels only, not raw values. The edit log keeps the old and new values of each edited cell.
 
-**End-to-end check (2026-11-18):**
-- The check ran in one transaction that was rolled back, so no data changed.
-- One fix set `list_price` for product `PRD00148`.
-- The product and the 69 rows waiting only on it went from OPEN to GRADUATED.
-- The fix's outcome was `LOADED`.
-- After the rollback, no `etl_run` row and no fix row remained.
+## History
 
-## First load (2026-11-17)
+**First load (2026-11-17)**
 
 | | Rows |
 |---|---:|
 | Read | 435,200 |
 | Loaded | 428,516 |
-| Quarantined (OPEN) | 5,984 |
-| Exact duplicates (DISMISSED) | 700 |
+| Quarantined | 5,984 |
+| Exact duplicates | 700 |
 
-Open records by rule:
+Open records by rule at that time: ORPHAN_PARENT_QUARANTINED 4,164; ORPHAN_KEY_NOT_IN_SOURCE 1,153;
+NUMERIC_VALUE_INVALID 337; REQUIRED_FIELD_MISSING 251; NEGATIVE_AMOUNT 79.
 
-| Rule | Open records |
-|---|---:|
-| ORPHAN_PARENT_QUARANTINED | 4,164 |
-| ORPHAN_KEY_NOT_IN_SOURCE | 1,153 |
-| NUMERIC_VALUE_INVALID | 337 |
-| REQUIRED_FIELD_MISSING | 251 |
-| NEGATIVE_AMOUNT | 79 |
+**Correction overlay (0007, 2026-11-18).** Before 0008, fixes were stored in `dataset.quarantine_correction`
+and every run re-read the CSVs and re-created the quarantine records (statuses OPEN / SUPERSEDED / GRADUATED /
+DISMISSED). Fix #2 (`PRD00148 list_price`) graduated 70 rows that way.
+`quarantine_correction` is now read-only legacy. Its rows were copied to `quarantine_edit`.
 
-All 10 tables reconcile against `v_etl_run_summary` when checked as `astra_reporting`.
-`astra_reporting` is denied `depends_on`, `raw_record` and `record_key`.
-A second identical run kept the table counts unchanged.
-It moved the 5,984 earlier OPEN records to SUPERSEDED.
+**Migration 0008 (2026-11-18).** It kept the 5,914 OPEN rows as the live quarantine.
+It moved the history (17,882 SUPERSEDED, 2,800 duplicates, 70 GRADUATED) to `quarantine_archive`
+and registered the 10 loaded files in `source_file`.
+
+**Checks after 0008 (2026-11-18):**
+- Dry run and the first real run: 0 new files, 5,914 quarantine rows rechecked, 0 graduated (no edits yet). A run now takes about 6 s.
+- End-to-end check in one transaction that was rolled back: `fix set` on one product with a negative price
+  graduated that product and the 79 rows waiting on it (80 rows loaded, archived as GRADUATED, deleted from quarantine).
+  The edit log kept the old value. `fix drop` archived a row as DROPPED. `DELETE` on `products` was denied.
 
 ## Known limits
 
-- Each run inserts its OPEN and duplicate records again, which adds about 6,700 rows per run.
-  A retention policy, for example archiving SUPERSEDED and DISMISSED records older than N days, is still to do.
-- A row loaded by an earlier run that fails now stays in its table, because the ETL role has no DELETE privilege.
-  Its `etl_run_id` is older than the latest run.
-- The GRADUATED path was checked once, end to end, in a transaction that was rolled back (see above).
-  It has not yet been used on committed data.
+- The archive grows by one row per graduated or dropped row. No retention policy yet.
+- A new row whose key is already loaded is quarantined, even when it is a real update of master data
+  (for example a new product price). Updating loaded rows needs its own flow, which does not exist yet.
+- Business rows keep `etl_run_id` and `source_row_number`. When one run reads two files of a table, the line
+  number alone does not say which file a row came from; `source_file` is stored for quarantine rows only.
+- A row with a blank primary key has no key to type: use `-` as KEY with `--id N`,
+  for example `.stra fix set customers - customer_id CUS000123 --id 77 --reason "..."`.

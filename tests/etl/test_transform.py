@@ -3,7 +3,7 @@ import csv
 import pathlib
 
 from astra_etl.spec import SPECS
-from astra_etl.transform import transform
+from astra_etl.transform import transform_dir as transform
 
 HEADERS = {
     "customers": ["customer_id", "customer_name", "customer_type", "email", "phone", "city", "registration_date", "customer_status"],
@@ -53,8 +53,8 @@ def _write(tmp_path: pathlib.Path) -> pathlib.Path:
 def test_transform_rules(tmp_path):
     r = transform(_write(tmp_path))
     sales = r["sales_transactions"]
-    assert sales.rows_duplicate == 1                       # D5 keep first
-    assert [row["transaction_id"] for _, row in sales.rows] == ["SAL00000001", "SAL00000004"]
+    assert len(sales.duplicates) == 1                      # D5 keep first
+    assert [r.row["transaction_id"] for r in sales.rows] == ["SAL00000001", "SAL00000004"]
     rules = {q.record_key: (q.rule_id, q.issue_code, q.failed_columns, q.depends_on) for q in sales.quarantined}
     assert rules == {
         "SAL00000002": ("ORPHAN_KEY_NOT_IN_SOURCE", "ORPHAN_FOREIGN_KEY", ["customer_id"], None),
@@ -62,15 +62,16 @@ def test_transform_rules(tmp_path):
         "SAL00000005": ("ORPHAN_PARENT_QUARANTINED", "ORPHAN_FOREIGN_KEY", ["product_id"], "products:PRD00002"),
     }
     (dup,) = sales.duplicates
-    assert (dup.rule_id, dup.record_key, dup.line, dup.depends_on) == ("EXACT_DUPLICATE_ROW", "SAL00000001", 3, "row:2")
-    loaded = dict((row["transaction_id"], row) for _, row in sales.rows)
+    assert (dup.rule_id, dup.record_key, dup.line, dup.depends_on) == ("EXACT_DUPLICATE_ROW", "SAL00000001", 3,
+                                                                    "row:sales_transactions.csv:2")
+    loaded = {r.row["transaction_id"]: r.row for r in sales.rows}
     assert loaded["SAL00000004"]["customer_id"] is None    # blank FK allowed
     assert str(loaded["SAL00000001"]["discount_pct"]) == "10.00"
 
 
 def test_self_reference_cascades(tmp_path):
     emp = transform(_write(tmp_path))["employees"]
-    assert sorted(row["employee_id"] for _, row in emp.rows) == ["EMP00001", "EMP00002"]
+    assert sorted(r.row["employee_id"] for r in emp.rows) == ["EMP00001", "EMP00002"]
     rules = {q.record_key: (q.rule_id, q.depends_on) for q in emp.quarantined}
     assert rules == {"EMP00003": ("ORPHAN_KEY_NOT_IN_SOURCE", None),                   # manager absent
                      "EMP00004": ("ORPHAN_PARENT_QUARANTINED", "employees:EMP00003")}  # waits for 3
@@ -94,9 +95,10 @@ def test_quarantine_detail_has_no_values(tmp_path):
 def test_reconciliation_and_canonical_values(tmp_path):
     r = transform(_write(tmp_path))
     for spec in SPECS:
-        t = r[spec.name]
-        assert t.rows_loaded + len(t.quarantined) + t.rows_duplicate == t.rows_read
-    (_, cust), = r["customers"].rows
+        (f,) = r[spec.name].files
+        assert f.rows_loaded + f.rows_quarantined + f.rows_duplicate == f.rows_read
+        assert f.name == f"{spec.name}.csv" and len(f.sha256) == 64
+    (cust,) = [x.row for x in r["customers"].rows]
     assert cust["customer_name"] == "Ani" and cust["email"] is None and cust["city"] is None
-    (_, sup), = r["suppliers"].rows
+    (sup,) = [x.row for x in r["suppliers"].rows]
     assert sup["payment_terms"] == "NET30"

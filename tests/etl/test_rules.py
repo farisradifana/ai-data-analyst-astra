@@ -5,7 +5,7 @@ import re
 from astra_etl.rules import COLUMN_RULE, RULES
 from astra_etl.spec import SPECS
 
-MIGRATION = pathlib.Path(__file__).resolve().parents[2] / "sql/migrations/20261117100000_quarantine_rule_catalog.sql"
+MIGRATION = pathlib.Path(__file__).resolve().parents[2] / "sql/migrations/20261118120000_live_quarantine.sql"
 
 
 def _sql_rules() -> dict[str, tuple[str, str | None, str]]:

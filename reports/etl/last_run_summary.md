@@ -1,18 +1,30 @@
-# ETL run summary (load)
+# ETL run summary (dry-run)
 
-Generated: 2026-11-17T16:35:27+00:00  
-Run id: 72887fef-698b-4429-9581-0f297f628735
+Generated: 2026-11-17T23:56:30+00:00  
+Run id: n/a (dry run)
 
-| Table | Read | Loaded | Quarantined | Duplicate | Rules (quarantine + duplicate) |
-|---|---:|---:|---:|---:|---|
-| customers | 60,120 | 60,000 | 0 | 120 | EXACT_DUPLICATE_ROW 120 |
-| employees | 5,025 | 5,000 | 0 | 25 | EXACT_DUPLICATE_ROW 25 |
-| suppliers | 1,510 | 1,500 | 0 | 10 | EXACT_DUPLICATE_ROW 10 |
-| products | 5,035 | 4,930 | 70 | 35 | EXACT_DUPLICATE_ROW 35, NEGATIVE_AMOUNT 32, REQUIRED_FIELD_MISSING 38 |
-| sales_transactions | 220,300 | 215,955 | 4,045 | 300 | EXACT_DUPLICATE_ROW 300, NUMERIC_VALUE_INVALID 300, ORPHAN_KEY_NOT_IN_SOURCE 751, ORPHAN_PARENT_QUARANTINED 2994 |
-| service_orders | 18,020 | 17,612 | 388 | 20 | EXACT_DUPLICATE_ROW 20, ORPHAN_KEY_NOT_IN_SOURCE 138, ORPHAN_PARENT_QUARANTINED 250 |
-| procurement | 30,045 | 29,388 | 612 | 45 | EXACT_DUPLICATE_ROW 45, ORPHAN_KEY_NOT_IN_SOURCE 191, ORPHAN_PARENT_QUARANTINED 421 |
-| inventory | 35,080 | 34,401 | 599 | 80 | EXACT_DUPLICATE_ROW 80, NUMERIC_VALUE_INVALID 37, ORPHAN_PARENT_QUARANTINED 499, REQUIRED_FIELD_MISSING 63 |
-| expenses | 25,025 | 24,880 | 120 | 25 | EXACT_DUPLICATE_ROW 25, NEGATIVE_AMOUNT 47, REQUIRED_FIELD_MISSING 73 |
-| attendance | 35,040 | 34,850 | 150 | 40 | EXACT_DUPLICATE_ROW 40, ORPHAN_KEY_NOT_IN_SOURCE 73, REQUIRED_FIELD_MISSING 77 |
-| **TOTAL** | **435,200** | **428,516** | **5,984** | **700** | |
+New files are read once. Quarantine rows are rechecked on every run.
+
+| Table | New files | Read | Loaded | Quarantined | Duplicate | Rechecked | Graduated | In quarantine after |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| customers | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| employees | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| suppliers | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| products | 0 | 0 | 0 | 0 | 0 | 69 | 0 | 69 |
+| sales_transactions | 0 | 0 | 0 | 0 | 0 | 3,996 | 0 | 3,996 |
+| service_orders | 0 | 0 | 0 | 0 | 0 | 387 | 0 | 387 |
+| procurement | 0 | 0 | 0 | 0 | 0 | 599 | 0 | 599 |
+| inventory | 0 | 0 | 0 | 0 | 0 | 593 | 0 | 593 |
+| expenses | 0 | 0 | 0 | 0 | 0 | 120 | 0 | 120 |
+| attendance | 0 | 0 | 0 | 0 | 0 | 150 | 0 | 150 |
+| **TOTAL** | | **0** | **0** | **0** | **0** | **5,914** | **0** | **5,914** |
+
+Rules of the rows in quarantine after the run:
+
+- products: NEGATIVE_AMOUNT 32, REQUIRED_FIELD_MISSING 37
+- sales_transactions: NUMERIC_VALUE_INVALID 300, ORPHAN_KEY_NOT_IN_SOURCE 751, ORPHAN_PARENT_QUARANTINED 2945
+- service_orders: ORPHAN_KEY_NOT_IN_SOURCE 138, ORPHAN_PARENT_QUARANTINED 249
+- procurement: ORPHAN_KEY_NOT_IN_SOURCE 191, ORPHAN_PARENT_QUARANTINED 408
+- inventory: NUMERIC_VALUE_INVALID 37, ORPHAN_PARENT_QUARANTINED 493, REQUIRED_FIELD_MISSING 63
+- expenses: NEGATIVE_AMOUNT 47, REQUIRED_FIELD_MISSING 73
+- attendance: ORPHAN_KEY_NOT_IN_SOURCE 73, REQUIRED_FIELD_MISSING 77

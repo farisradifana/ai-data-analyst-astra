@@ -1,17 +1,23 @@
-"""Extract + validate (no database). Pure Python, deterministic.
+"""Extract + validate (no database access). Pure Python, deterministic.
 
-Per table:
-  1. exact duplicate rows -> not loaded; recorded as EXACT_DUPLICATE_ROW (decision D5, keep first)
-  2. every column cleaned; any CleanError -> quarantine
-  3. cross-column row rules
-  4. non-exact duplicate primary key -> quarantine DUPLICATE_PRIMARY_KEY
-  5. foreign keys checked against the rows that passed in parent tables ->
-     ORPHAN_PARENT_QUARANTINED (parent exists but is quarantined) or ORPHAN_KEY_NOT_IN_SOURCE
-Every quarantined/duplicate row carries one rule_id from astra_etl.rules, the failing columns,
-and depends_on (the row it waits for), so it can graduate to valid data later.
-Active corrections (dataset.quarantine_correction) are overlaid on the raw rows before step 1;
-the source files are never changed. record_key always stays the key from the source file.
-Reconciliation always holds: rows_read = loaded + quarantined + duplicate.
+Each run validates, per table (parents first), one list of candidate rows:
+  1. every row still in quarantine (raw_record as edited by analysts), then
+  2. the rows of source files the ETL has not read before (each file is read only once).
+Per candidate:
+  a. exact copy of an earlier candidate (raw values)          -> EXACT_DUPLICATE_ROW (D5, keep first)
+  b. any column fails its cleaner                             -> column rule (rules.COLUMN_RULE)
+  c. cross-column row rules                                   -> rule named in spec.row_rules
+  d. key already taken by an earlier passing candidate        -> DUPLICATE_PRIMARY_KEY
+  e. key already loaded in the database: same clean values    -> EXACT_DUPLICATE_ROW
+                                         different values     -> DUPLICATE_PRIMARY_KEY (strict)
+  f. foreign keys: parent loaded (database or this run)       -> ok
+                   parent in quarantine                       -> ORPHAN_PARENT_QUARANTINED
+                   parent nowhere                             -> ORPHAN_KEY_NOT_IN_SOURCE
+A candidate that passes is loaded. A quarantined candidate that passes graduates (load.py archives
+and deletes it); one that fails keeps its quarantine row with refreshed labels.
+Reconciliation always holds:
+  per new file:   rows_read = loaded + quarantined + duplicate
+  per table:      quarantine rows checked = graduated + still open + dropped as duplicate
 """
 from __future__ import annotations
 
@@ -20,17 +26,40 @@ import hashlib
 import pathlib
 from collections import Counter
 from dataclasses import dataclass, field
+from typing import Callable
 
 from .clean import CleanError
 from .rules import COLUMN_RULE, RULES
-from .spec import SPECS, TableSpec
+from .spec import SPEC_BY_NAME, SPECS, TableSpec
 
 MAX_ISSUE_DETAIL = 500
 MAX_DEPENDS_ON = 100
 
+# (table, keys) -> {key: tuple of clean values in spec.columns order} for keys already loaded.
+ExistingRows = Callable[[str, list[str]], dict[str, tuple]]
+
+
+@dataclass(frozen=True)
+class SourceFile:
+    table: str
+    name: str             # path relative to raw-data, forward slashes
+    sha256: str
+    rows: tuple           # ((line, raw dict), ...); header is line 1
+
+
+@dataclass
+class OpenRecord:
+    """A row already in dataset.quarantine_record."""
+    quarantine_id: int
+    source_file: str
+    line: int
+    raw: dict
+    edited_columns: list[str] = field(default_factory=list)
+
 
 @dataclass
 class Quarantined:
+    source_file: str
     line: int
     record_key: str | None
     rule_id: str
@@ -38,7 +67,8 @@ class Quarantined:
     issue_detail: str
     raw: dict
     depends_on: str | None = None
-    corrected_columns: list[str] = field(default_factory=list)
+    quarantine_id: int | None = None      # set when the row was already in quarantine
+    edited_columns: list[str] = field(default_factory=list)
 
     @property
     def issue_code(self) -> str:
@@ -46,35 +76,57 @@ class Quarantined:
 
 
 @dataclass
+class Loaded:
+    source_file: str
+    line: int
+    row: dict
+    quarantine_id: int | None = None      # set when the row graduates from quarantine
+
+
+@dataclass
+class FileStats:
+    name: str
+    sha256: str
+    rows_read: int
+    rows_loaded: int = 0
+    rows_quarantined: int = 0
+    rows_duplicate: int = 0
+
+
+@dataclass
 class TableResult:
     spec: TableSpec
-    file_sha256: str
-    rows_read: int = 0
-    rows: list[tuple[int, dict]] = field(default_factory=list)  # (source line, clean row)
-    quarantined: list[Quarantined] = field(default_factory=list)
-    duplicates: list[Quarantined] = field(default_factory=list)  # EXACT_DUPLICATE_ROW
-    source_keys: dict[int, str | None] = field(default_factory=dict)  # line -> key in source file
-    corrected: dict[int, list[str]] = field(default_factory=dict)     # line -> corrected columns
-    correction_lines: dict[int, list[int]] = field(default_factory=dict)  # correction_id -> lines
-    correction_outcome: dict[int, str] = field(default_factory=dict)      # correction_id -> outcome
+    files: list[FileStats] = field(default_factory=list)
+    rows: list[Loaded] = field(default_factory=list)
+    quarantined: list[Quarantined] = field(default_factory=list)  # new rows and rows still open
+    duplicates: list[Quarantined] = field(default_factory=list)   # EXACT_DUPLICATE_ROW, never loaded
+    rechecked: int = 0                                            # quarantine rows checked this run
 
     @property
-    def rows_loaded(self) -> int:
-        return len(self.rows)
+    def graduated(self) -> list[int]:
+        return [r.quarantine_id for r in self.rows if r.quarantine_id is not None]
 
     @property
-    def rows_duplicate(self) -> int:
-        return len(self.duplicates)
+    def still_open(self) -> list[Quarantined]:
+        return [q for q in self.quarantined if q.quarantine_id is not None]
+
+    @property
+    def new_quarantine(self) -> list[Quarantined]:
+        return [q for q in self.quarantined if q.quarantine_id is None]
+
+    def rule_counts(self, new_only: bool = True) -> Counter:
+        items = self.quarantined + self.duplicates
+        return Counter(q.rule_id for q in items if not new_only or q.quarantine_id is None)
 
     def loaded_keys(self) -> set[str]:
-        """Keys that are now valid: source key and (possibly corrected) primary key of loaded rows."""
-        keys = {str(row[self.spec.pk]) for _, row in self.rows}
-        keys |= {k for line, _ in self.rows if (k := self.source_keys.get(line))}
-        return keys
+        return {r.row[self.spec.pk] for r in self.rows}
 
-    def rule_counts(self) -> Counter:
-        return Counter(q.rule_id for q in self.quarantined + self.duplicates)
+    def held_keys(self) -> set[str]:
+        """Keys of rows in quarantine after this run (parents that children may wait for)."""
+        return {k for q in self.quarantined if (k := q.record_key)}
 
+
+# --- files -----------------------------------------------------------------------------------
 
 def sha256_file(path: pathlib.Path) -> str:
     h = hashlib.sha256()
@@ -92,74 +144,68 @@ def read_csv(path: pathlib.Path) -> tuple[list[str], list[tuple[int, dict]]]:
         return list(reader.fieldnames or []), rows
 
 
-@dataclass(frozen=True)
-class Correction:
-    correction_id: int
-    table_name: str
-    record_key: str
-    source_row_number: int | None
-    column_name: str
-    value: str | None
+def discover(raw_dir: pathlib.Path) -> dict[str, list[tuple[str, pathlib.Path]]]:
+    """Source files per table: raw-data/<table>.csv first, then raw-data/<table>/*.csv by name."""
+    found: dict[str, list[tuple[str, pathlib.Path]]] = {}
+    for spec in SPECS:
+        paths = [raw_dir / spec.file] if (raw_dir / spec.file).is_file() else []
+        folder = raw_dir / spec.name
+        if folder.is_dir():
+            paths += sorted(p for p in folder.glob("*.csv") if p.is_file())
+        found[spec.name] = [(p.relative_to(raw_dir).as_posix(), p) for p in paths]
+    return found
 
+
+def read_source(table: str, name: str, path: pathlib.Path) -> SourceFile:
+    header, rows = read_csv(path)
+    missing = [c.source for c in SPEC_BY_NAME[table].columns if c.source not in header]
+    if missing:
+        raise RuntimeError(f"{name}: missing columns {missing}")
+    return SourceFile(table, name, sha256_file(path), tuple(rows))
+
+
+# --- validation ------------------------------------------------------------------------------
 
 def _key(raw: dict, pk: str) -> str | None:
     return (raw.get(pk) or "").strip().upper()[:64] or None
 
 
-def apply_corrections(res: TableResult, header: list[str], raw_rows: list[tuple[int, dict]],
-                      corrections: list[Correction]) -> None:
-    """Overlay corrections on raw rows in place. Matches on the source key (+ line if given)."""
-    by_key: dict[str, list[int]] = {}
-    for line, raw in raw_rows:
-        key = _key(raw, res.spec.pk)
-        res.source_keys[line] = key
-        if key:
-            by_key.setdefault(key, []).append(line)
-    rows = dict(raw_rows)
-    for c in sorted(corrections, key=lambda c: c.correction_id):
-        if c.column_name not in header:
-            res.correction_outcome[c.correction_id] = "COLUMN_UNKNOWN"
-            continue
-        lines = [ln for ln in by_key.get(c.record_key.strip().upper(), [])
-                 if c.source_row_number in (None, ln)]
-        if not lines:
-            res.correction_outcome[c.correction_id] = "KEY_NOT_FOUND"
-            continue
-        for ln in lines:
-            rows[ln][c.column_name] = "" if c.value is None else c.value
-            res.corrected.setdefault(ln, []).append(c.column_name)
-        res.correction_lines[c.correction_id] = lines
-
-
-def _record(line: int, key: str | None, rule_id: str, errors: list[tuple[str, str]], raw: dict,
-            depends_on: str | None = None, corrected: list[str] | None = None) -> Quarantined:
+def _label(cand: dict, rule_id: str, errors: list[tuple[str, str]], depends_on: str | None = None) -> Quarantined:
     # Detail names columns and codes only, never values (values may be PII).
     detail = "; ".join(f"{col}:{code}" for col, code in errors)[:MAX_ISSUE_DETAIL]
     cols = list(dict.fromkeys(col for col, _ in errors))
-    return Quarantined(line, key, rule_id, cols, detail, dict(raw),
-                       depends_on[:MAX_DEPENDS_ON] if depends_on else None, list(corrected or []))
+    return Quarantined(cand["file"], cand["line"], _key(cand["raw"], cand["pk_source"]), rule_id, cols, detail,
+                       dict(cand["raw"]), depends_on[:MAX_DEPENDS_ON] if depends_on else None,
+                       cand["qid"], list(cand["edited"]))
 
 
-def clean_table(spec: TableSpec, raw_rows: list[tuple[int, dict]], sha: str, header: list[str] | None = None,
-                corrections: list[Correction] | None = None) -> TableResult:
-    res = TableResult(spec=spec, file_sha256=sha, rows_read=len(raw_rows))
-    if header is None:
-        header = list(raw_rows[0][1]) if raw_rows else []
-    apply_corrections(res, header, raw_rows, corrections or [])
-    first_exact: dict[tuple, int] = {}
-    first_pk: dict[str, int] = {}
+def _candidates(spec: TableSpec, open_records: list[OpenRecord], files: list[SourceFile]) -> list[dict]:
+    pk_source = next(c.source for c in spec.columns if c.target == spec.pk)
+    out = [{"file": o.source_file, "line": o.line, "raw": o.raw, "qid": o.quarantine_id,
+            "edited": o.edited_columns, "pk_source": pk_source}
+           for o in sorted(open_records, key=lambda o: (o.source_file, o.line))]
+    for f in files:
+        out += [{"file": f.name, "line": line, "raw": raw, "qid": None, "edited": [], "pk_source": pk_source}
+                for line, raw in f.rows]
+    return out
 
-    def record(line, key, rule_id, errors, raw, depends_on=None):
-        return _record(line, key, rule_id, errors, raw, depends_on, res.corrected.get(line))
 
-    for line, raw in raw_rows:
-        key = res.source_keys[line]
-        fingerprint = tuple(raw.get(k) for k in sorted(raw))
+def clean_table(spec: TableSpec, candidates: list[dict], db_keys: set[str],
+                existing: ExistingRows) -> tuple[TableResult, list[tuple[dict, dict]]]:
+    """Steps a-e. Returns the result and the passing (candidate, clean row) pairs (FKs not checked)."""
+    res = TableResult(spec=spec, rechecked=sum(1 for c in candidates if c["qid"] is not None))
+    first_exact: dict[tuple, dict] = {}
+    first_pk: dict[str, dict] = {}
+    passing: list[tuple[dict, dict]] = []
+    for cand in candidates:
+        raw = cand["raw"]
+        fingerprint = tuple((k, raw.get(k)) for k in sorted(raw))
         if fingerprint in first_exact:
-            res.duplicates.append(record(line, key, "EXACT_DUPLICATE_ROW", [("row", "EXACT_DUPLICATE_ROW")],
-                                          raw, f"row:{first_exact[fingerprint]}"))
+            first = first_exact[fingerprint]
+            res.duplicates.append(_label(cand, "EXACT_DUPLICATE_ROW", [("row", "EXACT_DUPLICATE_ROW")],
+                                         f"row:{first['file']}:{first['line']}"))
             continue
-        first_exact[fingerprint] = line
+        first_exact[fingerprint] = cand
 
         row, errors = {}, []
         for col in spec.columns:
@@ -168,80 +214,106 @@ def clean_table(spec: TableSpec, raw_rows: list[tuple[int, dict]], sha: str, hea
             except CleanError as e:
                 errors.append((col.target, e.code))
         if errors:
-            res.quarantined.append(record(line, key, COLUMN_RULE[errors[0][1]], errors, raw))
+            res.quarantined.append(_label(cand, COLUMN_RULE[errors[0][1]], errors))
             continue
         broken = [rule_id for rule_id, ok in spec.row_rules if not ok(row)]
         if broken:
-            errors = [("row", RULES[r].issue_code) for r in broken]
-            res.quarantined.append(record(line, key, broken[0], errors, raw))
+            res.quarantined.append(_label(cand, broken[0], [("row", RULES[r].issue_code) for r in broken]))
             continue
-        if row[spec.pk] in first_pk:
-            res.quarantined.append(record(line, key, "DUPLICATE_PRIMARY_KEY",
-                                           [(spec.pk, "DUPLICATE_PRIMARY_KEY")], raw,
-                                           f"row:{first_pk[row[spec.pk]]}"))
+        key = row[spec.pk]
+        if key in first_pk:
+            first = first_pk[key]
+            res.quarantined.append(_label(cand, "DUPLICATE_PRIMARY_KEY", [(spec.pk, "DUPLICATE_PRIMARY_KEY")],
+                                          f"row:{first['file']}:{first['line']}"))
             continue
-        first_pk[row[spec.pk]] = line
-        res.rows.append((line, row))
-    return res
+        first_pk[key] = cand
+        passing.append((cand, row))
 
-
-def apply_foreign_keys(results: dict[str, TableResult], raw_lookup: dict[str, dict[int, dict]]) -> None:
-    """Quarantine rows whose non-null FK is not among the loaded parent keys.
-
-    A parent key that is in the source but quarantined -> ORPHAN_PARENT_QUARANTINED (graduates
-    with the parent). A key absent from the parent file -> ORPHAN_KEY_NOT_IN_SOURCE.
-    Self-references (employees.manager_id) are resolved iteratively, because removing a manager
-    can orphan their reports.
-    """
-    for spec in SPECS:
-        res = results[spec.name]
-        if not spec.fks:
+    taken = [row[spec.pk] for _, row in passing if row[spec.pk] in db_keys]
+    loaded = existing(spec.name, taken) if taken else {}
+    kept = []
+    for cand, row in passing:
+        key = row[spec.pk]
+        if key in db_keys:
+            same = loaded.get(key) == tuple(row[c.target] for c in spec.columns)
+            rule = "EXACT_DUPLICATE_ROW" if same else "DUPLICATE_PRIMARY_KEY"
+            target = res.duplicates if same else res.quarantined
+            target.append(_label(cand, rule, [(spec.pk, rule)], f"{spec.name}:{key}"))
             continue
-        while True:
-            parents = {t for _, t, _ in spec.fks}
-            loaded = {t: {r[results[t].spec.pk] for _, r in results[t].rows} for t in parents}
-            held = {t: {q.record_key for q in results[t].quarantined} for t in parents}
-            for t in parents:  # a parent whose key was corrected is held under its new key too
-                held[t] |= {str(q.raw.get(results[t].spec.pk) or "").strip().upper()
-                            for q in results[t].quarantined}
-            kept, moved = [], 0
-            for line, row in res.rows:
-                bad = [(col, parent) for col, parent, _nullable in spec.fks
-                       if row[col] is not None and row[col] not in loaded[parent]]
-                if not bad:
-                    kept.append((line, row))
-                    continue
-                waiting = [f"{parent}:{row[col]}" for col, parent in bad if row[col] in held[parent]]
-                rule_id = "ORPHAN_PARENT_QUARANTINED" if len(waiting) == len(bad) else "ORPHAN_KEY_NOT_IN_SOURCE"
-                res.quarantined.append(_record(line, res.source_keys.get(line), rule_id,
-                                               [(col, "ORPHAN_FOREIGN_KEY") for col, _ in bad],
-                                               raw_lookup[spec.name][line], ";".join(waiting) or None,
-                                               res.corrected.get(line)))
-                moved += 1
-            res.rows = kept
-            self_ref = spec.name in parents
-            if not moved or not self_ref:
-                break
+        kept.append((cand, row))
+    return res, kept
 
 
-def transform(raw_dir: pathlib.Path, corrections: list[Correction] | None = None) -> dict[str, TableResult]:
+def apply_foreign_keys(spec: TableSpec, res: TableResult, passing: list[tuple[dict, dict]],
+                       results: dict[str, TableResult], db_keys: dict[str, set[str]]) -> None:
+    """Step f. Parents are earlier in SPECS, so their results are final; a self-reference
+    (employees.manager_id) is resolved iteratively because quarantining a manager can orphan
+    their reports."""
+    parents = {t for _, t, _ in spec.fks}
+    while True:
+        valid = {t: db_keys.get(t, set()) | ({row[spec.pk] for _, row in passing} if t == spec.name
+                                             else results[t].loaded_keys()) for t in parents}
+        held = {t: (res if t == spec.name else results[t]).held_keys() for t in parents}
+        kept, moved = [], 0
+        for cand, row in passing:
+            bad = [(col, parent) for col, parent, _nullable in spec.fks
+                   if row[col] is not None and row[col] not in valid[parent]]
+            if not bad:
+                kept.append((cand, row))
+                continue
+            waiting = [f"{parent}:{row[col]}" for col, parent in bad if row[col] in held[parent]]
+            rule_id = "ORPHAN_PARENT_QUARANTINED" if len(waiting) == len(bad) else "ORPHAN_KEY_NOT_IN_SOURCE"
+            res.quarantined.append(_label(cand, rule_id, [(col, "ORPHAN_FOREIGN_KEY") for col, _ in bad],
+                                          ";".join(waiting) or None))
+            moved += 1
+        passing = kept
+        if not moved or spec.name not in parents:
+            break
+    res.rows = [Loaded(c["file"], c["line"], row, c["qid"]) for c, row in passing]
+
+
+def _file_stats(res: TableResult, files: list[SourceFile]) -> None:
+    stats = {f.name: FileStats(f.name, f.sha256, len(f.rows)) for f in files}
+    for r in res.rows:
+        if r.quarantine_id is None:
+            stats[r.source_file].rows_loaded += 1
+    for q in res.new_quarantine:
+        stats[q.source_file].rows_quarantined += 1
+    for q in res.duplicates:
+        if q.quarantine_id is None:
+            stats[q.source_file].rows_duplicate += 1
+    res.files = list(stats.values())
+
+
+def _no_rows(table: str, keys: list[str]) -> dict[str, tuple]:
+    return {}
+
+
+def transform(files: dict[str, list[SourceFile]], open_records: dict[str, list[OpenRecord]] | None = None,
+              db_keys: dict[str, set[str]] | None = None,
+              existing: ExistingRows | None = None) -> dict[str, TableResult]:
+    """files: new source files per table. open_records: rows in quarantine per table.
+    db_keys: primary keys already loaded per table. existing: clean values of loaded keys."""
+    open_records, db_keys, existing = open_records or {}, db_keys or {}, existing or _no_rows
     results: dict[str, TableResult] = {}
-    raw_lookup: dict[str, dict[int, dict]] = {}
     for spec in SPECS:
-        path = raw_dir / spec.file
-        header, raw_rows = read_csv(path)
-        missing = [c.source for c in spec.columns if c.source not in header]
-        if missing:
-            raise RuntimeError(f"{spec.file}: missing columns {missing}")
-        mine = [c for c in corrections or [] if c.table_name == spec.name]
-        results[spec.name] = clean_table(spec, raw_rows, sha256_file(path), header, mine)
-        raw_lookup[spec.name] = dict(raw_rows)
-    apply_foreign_keys(results, raw_lookup)
+        mine = files.get(spec.name, [])
+        cands = _candidates(spec, open_records.get(spec.name, []), mine)
+        res, passing = clean_table(spec, cands, db_keys.get(spec.name, set()), existing)
+        apply_foreign_keys(spec, res, passing, results, db_keys)
+        _file_stats(res, mine)
+        results[spec.name] = res
+
     for res in results.values():
-        held = {q.line for q in res.quarantined}
-        for cid, lines in res.correction_lines.items():
-            res.correction_outcome[cid] = "STILL_QUARANTINED" if held.intersection(lines) else "LOADED"
-    for res in results.values():
-        assert res.rows_loaded + len(res.quarantined) + res.rows_duplicate == res.rows_read, res.spec.name
+        for f in res.files:
+            assert f.rows_loaded + f.rows_quarantined + f.rows_duplicate == f.rows_read, (res.spec.name, f.name)
+        dropped = sum(1 for q in res.duplicates if q.quarantine_id is not None)
+        assert len(res.graduated) + len(res.still_open) + dropped == res.rechecked, res.spec.name
         assert all(q.rule_id in RULES for q in res.quarantined + res.duplicates), res.spec.name
     return results
+
+
+def transform_dir(raw_dir: pathlib.Path) -> dict[str, TableResult]:
+    """Offline: treat every file under raw_dir as new, with an empty database."""
+    files = {t: [read_source(t, name, p) for name, p in found] for t, found in discover(raw_dir).items()}
+    return transform(files)

@@ -19,6 +19,7 @@ without password (cannot log in until the owner sets one).
 | `20261117090400_dataset_reporting_views.sql` | 9 `security_invoker` views for Looker Studio |
 | `20261117100000_quarantine_rule_catalog.sql` | `quarantine_rule` catalog (12 rules), `quarantine_record.rule_id` / `failed_columns` / `depends_on`, statuses OPEN / GRADUATED / SUPERSEDED / DISMISSED, views `v_quarantine_open` (+ rule columns) and `v_quarantine_lifecycle`. See doc 31 |
 | `20261118090000_quarantine_correction.sql` | `quarantine_correction` (one fix per cell, applied by every ETL run; analyst SELECT/INSERT/UPDATE, no DELETE; reporting sees metadata only), `quarantine_record.corrected_columns`, view `v_correction_status`. See doc 31 |
+| `20261118120000_live_quarantine.sql` | Each file read once (`source_file` registry; `etl_run_file` key now run + table + file). `quarantine_record` holds only rows still to fix (one per source row, `source_file`, `last_checked_run_id`); edits logged in `quarantine_edit`; rows that leave go to `quarantine_archive` (GRADUATED / DUPLICATE_DROPPED / DROPPED / SUPERSEDED, labels only). History of 0006/0007 moved to the archive; `quarantine_correction` now read-only legacy. Graduation path `FIX_SOURCE` renamed `FIX_IN_QUARANTINE`. `astra_analyst` gets DELETE on `quarantine_record` only. See doc 31 |
 
 Every migration is idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
 None contains DROP TABLE, TRUNCATE or DELETE.
@@ -34,7 +35,7 @@ None contains DROP TABLE, TRUNCATE or DELETE.
   `employees.manager_id` self-FK is DEFERRABLE (D6 allows blank).
 - Generated columns: `gross_amount`, `net_amount`, `total_amount`, `total_cost`, `stock_value`.
 - Lineage on every business row: `etl_run_id`, `source_row_number`, `loaded_at`.
-  `etl_run_file` stores the source SHA-256 and the reconciliation `read = loaded + quarantined + duplicate`.
+  `source_file` registers every file read; `etl_run_file` stores the source SHA-256 and the reconciliation `read = loaded + quarantined + duplicate`.
 
 ## Access model
 
@@ -55,7 +56,7 @@ Looker Studio connects as `astra_reporting` and should use the `v_*` views. `SEL
 
 `v_customers_public`, `v_employees_public`, `v_suppliers_public`, `v_sales_daily`,
 `v_service_daily`, `v_expenses_monthly`, `v_inventory_latest`, `v_etl_run_summary`,
-`v_quarantine_open`, `v_quarantine_lifecycle`, `v_correction_status`.
+`v_quarantine_open`, `v_quarantine_lifecycle` (open rows + archive), `v_correction_status` (legacy).
 
 ## Tests
 
