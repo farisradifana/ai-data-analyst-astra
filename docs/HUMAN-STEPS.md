@@ -24,8 +24,8 @@ Deviation from the original spec: Supabase's database name is always `postgres`,
    is too weak for an internet-facing database; use it only for a local DB.
 4. Write them into `F:\data-analyst-astra\.env`:
    ```
-   SUPABASE_PROJECT_REF=...
-   DATABASE_HOST=aws-0-ap-southeast-1.pooler.supabase.com
+   SUPABASE_PROJECT_REF=...        # 20-char ref only, not https://<ref>.supabase.co
+   DATABASE_HOST=aws-1-ap-southeast-1.pooler.supabase.com   # aws-1, not aws-0
    DATABASE_PORT=5432
    DATABASE_NAME=postgres
    DATABASE_SSLMODE=verify-full
@@ -84,10 +84,12 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    later by changing these two values and the n8n Chat Model node.
 3. n8n already has a credential named "Google Gemini(PaLM) Api account". Confirm it is the key
    to use, or create a new one: n8n → Credentials → New → Google Gemini(PaLM) API.
-4. Set `N8N_ENCRYPTION_KEY` once (keep it in your password manager; losing it makes stored n8n
-   credentials unreadable). If n8n has already generated one, it is in `%USERPROFILE%\.n8n\config` — keep that value.
+4. `N8N_ENCRYPTION_KEY`: leave it **empty** in `.env`. Checked 2026-11-17: n8n already keeps a key in
+   `%USERPROFILE%\.n8n\config`. Back that file up in your password manager; losing it makes stored n8n
+   credentials unreadable. Setting a different value makes n8n refuse to start.
 5. After H1, create the n8n Postgres credential yourself (n8n → Credentials → Postgres) with the
-   **read-only** `astra_reporting` user, host `localhost`, DB `astra_analytics`, SSL off for local.
+   **read-only** `astra_reporting` user: host `aws-1-ap-southeast-1.pooler.supabase.com`, port `5432`,
+   database `postgres`, user `astra_reporting.<project_ref>`, SSL required.
 6. Start n8n when needed:
    ```bash
    n8n start
