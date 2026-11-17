@@ -41,7 +41,7 @@ Deviation from the original spec: Supabase's database name is always `postgres`,
 6. Free tier note: the project pauses after ~7 days without activity. Open the dashboard or run
    the pipeline weekly, or upgrade.
 
-- [ ] H1 done
+- [x] H1 done (2026-11-17, verified with `python scripts/check_db_connection.py`, verify-full)
 
 ## H2 — Approve tool installs (Phase 2) — 2 min
 
