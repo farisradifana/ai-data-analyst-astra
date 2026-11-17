@@ -1,7 +1,12 @@
 # 30 — Database Schema (Supabase, schema `dataset`)
 
-Status 2026-11-17: migrations **written, not yet applied**. The target project was checked
-read-only first: no `dataset` schema, no `astra_*` roles, no tables in `public`.
+Status 2026-11-17: all 5 migrations **applied** to the Supabase project through the connector
+(migration names `astra_roles`, `dataset_schema_and_audit`, `dataset_core_tables`,
+`dataset_rls_and_grants`, `dataset_reporting_views`). Before applying, the project was checked
+read-only: no `dataset` schema, no `astra_*` roles, no tables in `public`.
+
+Verified after apply: 14 tables, 9 views, 56 policies, RLS on every table, 0 rows, both roles
+without password (cannot log in until the owner sets one).
 
 ## Migrations (`sql/migrations/`, apply in order)
 
@@ -56,6 +61,20 @@ Looker Studio connects as `astra_reporting` and should use the `v_*` views. `SEL
 rolls back. It checks: analyst insert/update works and generated `net_amount` is right;
 analyst DELETE and DDL are denied; `quantity = 0` is rejected; reporting reads views but not PII
 or `raw_record` and cannot insert; anon and authenticated are denied; no table lacks RLS.
+
+Result 2026-11-17 (all pass):
+`analyst_insert=ok net=180000.00; analyst_update=ok; analyst_delete=denied; qty0=rejected;
+analyst_ddl=denied; reporting_view_rows=1; reporting_customers_public=ok; reporting_pii=denied;
+reporting_raw_record=denied; reporting_insert=denied; anon_select=denied; authenticated_view=denied;
+tables_without_rls=0`. Afterwards 0 rows and no leftover role grants were confirmed.
+
+## Supabase advisors (2026-11-17)
+
+| Advisor | Finding | Handling |
+|---|---|---|
+| Security WARN | `public.rls_auto_enable()` is SECURITY DEFINER and executable by `anon` / `authenticated` via `/rest/v1/rpc/rls_auto_enable` | Not created by these migrations (existed before). Left unchanged pending owner decision |
+| Performance INFO | 12 foreign keys without covering index (11 × `etl_run_id`, 1 × `employees.manager_id`) | Accepted: `etl_run` rows are never deleted or re-keyed. Revisit `manager_id` if org-chart queries are slow |
+| Performance INFO | 20 unused indexes | Expected: tables are empty until the ETL runs |
 
 ## After applying (owner)
 
