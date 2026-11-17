@@ -35,8 +35,8 @@ Deviation from the original spec: Supabase's database name is always `postgres`,
    REPORTING_DB_USER=astra_reporting
    REPORTING_DB_PASSWORD=...
    ```
-5. Claude writes `sql/migrations/*.sql` (roles, schema `dataset`, tables, RLS, grants) and applies
-   them through the Supabase connector after you approve. Role passwords are set by you in the
+5. Claude has written `sql/migrations/*.sql` (see [30-database-schema.md](30-database-schema.md)) and
+   applies them through the Supabase connector after you approve. Role passwords are set by you in the
    SQL editor (`ALTER ROLE astra_analyst PASSWORD '...'`) so they never pass through chat.
 6. Free tier note: the project pauses after ~7 days without activity. Open the dashboard or run
    the pipeline weekly, or upgrade.
