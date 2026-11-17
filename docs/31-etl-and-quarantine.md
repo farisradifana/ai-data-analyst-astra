@@ -3,7 +3,8 @@
 ## Run
 
 ```bash
-PYTHONPATH=src python -m astra_etl --dry-run   # validate only, no database writes
+PYTHONPATH=src python -m astra_etl --dry-run   # validate only (reads fixes), no database writes
+PYTHONPATH=src python -m astra_etl --dry-run --offline   # no database at all
 PYTHONPATH=src python -m astra_etl             # load as astra_analyst (verify-full SSL)
 ```
 
@@ -18,6 +19,7 @@ Modules in `src/astra_etl/`:
 | `clean.py` | Value cleaners. Decisions D1–D4, D6. |
 | `spec.py` | Mapping per table (CSV column → cleaner → DB column), FKs, cross-column rules |
 | `rules.py` | Quarantine rule catalog. Mirrors `dataset.quarantine_rule`. |
+| `fix.py` | `python -m astra_etl.fix` commands: list / show / set / off / status for fixes |
 | `transform.py` | Exact duplicates, cleaning, row rules, PK conflicts, FK checks. Asserts `read = loaded + quarantined + duplicate`. |
 | `load.py` | One transaction. Upserts with no DELETE, then the quarantine lifecycle, `etl_run_file` and `dq_check_result`. |
 
@@ -54,18 +56,75 @@ Each quarantined or duplicate row in `dataset.quarantine_record` carries these l
 
 ## How a row graduates to valid data
 
-1. Find what to fix as `astra_analyst`: open records by `rule_id`, with `failed_columns`, `depends_on` and `raw_record`.
-   Dashboards use `v_quarantine_open`, which has no record content.
-2. Fix the value in `raw-data/<table>.csv`.
-   For `AUTO_WITH_PARENT`, fix the parent named in `depends_on`.
-   Its children graduate in the same run.
-3. Rerun `python -m astra_etl`. The earlier OPEN records of each table change status:
+Fix quarantined data in the database, not in the CSV.
+Each fix is one cell, stored in `dataset.quarantine_correction` (migration 0007).
+Every ETL run applies the active fixes on top of the raw row, then validates it again.
+The source files in `raw-data/` are never changed, so they stay as the audit trail.
+
+1. **Find** what to fix. `list` shows table, key, rule, the columns to fix and what the row waits for.
+   It shows no values.
+
+   ```bash
+   PYTHONPATH=src python -m astra_etl.fix list --table products
+   ```
+
+2. **Look** at one row: its rule, how to fix it, and the current values.
+   The failing columns are marked `<-`.
+   The output can contain personal data, so use it on your own machine only.
+
+   ```bash
+   PYTHONPATH=src python -m astra_etl.fix show products PRD00148
+   ```
+
+3. **Fix** the value. Use the column name from the source CSV. `--reason` is required.
+
+   ```bash
+   PYTHONPATH=src python -m astra_etl.fix set products PRD00148 list_price 150000 --reason "price from catalogue"
+   ```
+
+   - `--blank` makes the cell empty instead of setting a value.
+   - `--line N` limits the fix to one source line. Use it when two rows share a key (`DUPLICATE_PRIMARY_KEY`).
+     For example, give the second row a new key with `set sales_transactions SAL00000004 transaction_id SAL00000009 --line 8`.
+   - Setting the same cell again replaces the earlier fix.
+   - `off <correction_id>` withdraws a fix. Rows are never deleted: the fix is only marked inactive.
+   - For `AUTO_WITH_PARENT` rows, fix the parent named in `depends_on`.
+     All the rows waiting on that parent graduate in the same run.
+4. **Rerun** the ETL with `python -m astra_etl`.
+   Each fix gets a `last_outcome`:
+
+   | Outcome | Meaning |
+   |---|---|
+   | `LOADED` | The fixed row passed validation and is in the valid table |
+   | `STILL_QUARANTINED` | The fixed row still fails |
+   | `KEY_NOT_FOUND` | No source row has that key |
+   | `COLUMN_UNKNOWN` | The table has no column with that name |
+
+   The earlier OPEN quarantine records change status:
    - `GRADUATED`: the key is now loaded into the valid table.
-   - `SUPERSEDED`: the key still fails. A new OPEN record, possibly under a different rule, replaces it.
+   - `SUPERSEDED`: the key still fails. A new OPEN record replaces it, possibly under a different rule, and its `corrected_columns` shows what was fixed.
    - `DISMISSED`: the row is no longer in the source file.
 
    `resolved_run_id` records which run made the change.
-4. Track progress in `v_quarantine_lifecycle`, which counts records per table, rule and status.
+5. **Track** progress:
+   - `python -m astra_etl.fix status`, or the view `v_correction_status`.
+   - `v_quarantine_lifecycle`, which counts records per table, rule and status.
+
+Fixes are kept across runs.
+A fix also overrides a value that was later corrected in the CSV, until you withdraw it.
+A row with a blank primary key cannot be fixed this way. Fix it in the CSV instead.
+
+**Access:**
+- `astra_analyst` (the `fix` command) can read and write fixes.
+- `astra_reporting` sees only the fix metadata: table, column, active flag, outcome and dates.
+  It does not see the key, the value, the reason or the author.
+- Edits made in the Supabase table editor run as `postgres`. The ETL picks them up the same way.
+
+**End-to-end check (2026-11-18):**
+- The check ran in one transaction that was rolled back, so no data changed.
+- One fix set `list_price` for product `PRD00148`.
+- The product and the 69 rows waiting only on it went from OPEN to GRADUATED.
+- The fix's outcome was `LOADED`.
+- After the rollback, no `etl_run` row and no fix row remained.
 
 ## First load (2026-11-17)
 
@@ -97,5 +156,5 @@ It moved the 5,984 earlier OPEN records to SUPERSEDED.
   A retention policy, for example archiving SUPERSEDED and DISMISSED records older than N days, is still to do.
 - A row loaded by an earlier run that fails now stays in its table, because the ETL role has no DELETE privilege.
   Its `etl_run_id` is older than the latest run.
-- The GRADUATED transition is covered by the update logic.
-  It has not yet been exercised by a real source fix.
+- The GRADUATED path was checked once, end to end, in a transaction that was rolled back (see above).
+  It has not yet been used on committed data.

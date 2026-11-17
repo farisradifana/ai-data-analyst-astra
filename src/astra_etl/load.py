@@ -8,6 +8,10 @@
     DISMISSED   key no longer in the source file
   then this run's quarantine rows are inserted as OPEN, and exact duplicates as DISMISSED
   (rule EXACT_DUPLICATE_ROW). Every record carries rule_id, failed_columns and depends_on.
+- Corrections: each active dataset.quarantine_correction gets last_outcome for this run
+  (LOADED | STILL_QUARANTINED | KEY_NOT_FOUND | COLUMN_UNKNOWN).
+- commit=False runs everything in one transaction and leaves it open (caller inspects, then
+  rolls back): used for end-to-end checks without changing data.
 - etl_run_file (checksum + reconciliation) and dq_check_result (counts per rule_id).
 - Any error -> ROLLBACK of the data transaction, etl_run marked FAILED (error class only).
 Known limit: a row loaded by an earlier run and quarantined now stays in its table (no DELETE
@@ -43,7 +47,7 @@ def _close_previous(cur, res: TableResult, run_id: str) -> None:
     if not cur.fetchone()[0]:
         return
     held = sorted({q.record_key for q in res.quarantined if q.record_key})
-    loaded = sorted({str(row[res.spec.pk]) for _, row in res.rows})
+    loaded = sorted(res.loaded_keys())
     cur.execute(
         "UPDATE dataset.quarantine_record SET resolved_at = now(), resolved_run_id = %(run)s, status = "
         "CASE WHEN record_key = ANY(%(held)s) THEN 'SUPERSEDED' "
@@ -55,15 +59,23 @@ def _close_previous(cur, res: TableResult, run_id: str) -> None:
 def _quarantine(cur, res: TableResult, run_id: str) -> None:
     _close_previous(cur, res, run_id)
     data = [(run_id, res.spec.name, q.line, q.record_key, q.issue_code, q.rule_id, q.failed_columns,
-             q.depends_on, q.issue_detail, Json(q.raw), "OPEN", None, None) for q in res.quarantined]
+             q.depends_on, q.corrected_columns, q.issue_detail, Json(q.raw), "OPEN", None, None)
+            for q in res.quarantined]
     data += [(run_id, res.spec.name, q.line, q.record_key, q.issue_code, q.rule_id, q.failed_columns,
-              q.depends_on, q.issue_detail, Json(q.raw), "DISMISSED", "now", run_id) for q in res.duplicates]
+              q.depends_on, q.corrected_columns, q.issue_detail, Json(q.raw), "DISMISSED", "now", run_id)
+             for q in res.duplicates]
     if data:
         execute_values(cur, "INSERT INTO dataset.quarantine_record (run_id, table_name, source_row_number, "
-                            "record_key, issue_code, rule_id, failed_columns, depends_on, issue_detail, "
-                            "raw_record, status, resolved_at, resolved_run_id) VALUES %s",
-                       data, template="(%s,%s,%s,%s,%s,%s,%s::text[],%s,%s,%s,%s,%s::timestamptz,%s::uuid)",
+                            "record_key, issue_code, rule_id, failed_columns, depends_on, corrected_columns, "
+                            "issue_detail, raw_record, status, resolved_at, resolved_run_id) VALUES %s",
+                       data, template="(%s,%s,%s,%s,%s,%s,%s::text[],%s,%s::text[],%s,%s,%s,%s::timestamptz,%s::uuid)",
                        page_size=PAGE)
+    if res.correction_outcome:
+        execute_values(cur, "UPDATE dataset.quarantine_correction c SET last_outcome = v.outcome, "
+                            "last_applied_run_id = v.run_id, last_applied_at = now() "
+                            "FROM (VALUES %s) AS v(id, outcome, run_id) WHERE c.correction_id = v.id",
+                       [(cid, outcome, run_id) for cid, outcome in sorted(res.correction_outcome.items())],
+                       template="(%s::bigint, %s::text, %s::uuid)")
 
 
 def _audit(cur, res: TableResult, run_id: str) -> None:
@@ -79,12 +91,14 @@ def _audit(cur, res: TableResult, run_id: str) -> None:
                    [(run_id, res.spec.name, name, n, res.rows_read, sev) for name, n, sev in checks])
 
 
-def load(conn, results: dict[str, TableResult], trigger: str, code_version: str | None, log=print) -> str:
+def load(conn, results: dict[str, TableResult], trigger: str, code_version: str | None, log=print,
+         commit: bool = True) -> str:
     with conn.cursor() as cur:
         cur.execute("INSERT INTO dataset.etl_run (trigger_type, code_version) VALUES (%s, %s) RETURNING run_id",
                     (trigger, code_version))
         run_id = cur.fetchone()[0]
-    conn.commit()
+    if commit:
+        conn.commit()
     log(f"run {run_id} started")
     try:
         with conn.cursor() as cur:
@@ -98,9 +112,12 @@ def load(conn, results: dict[str, TableResult], trigger: str, code_version: str 
                     f"duplicate={res.rows_duplicate:>4} {time.perf_counter() - t0:5.1f}s")
             cur.execute("UPDATE dataset.etl_run SET status = 'SUCCEEDED', finished_at = now() WHERE run_id = %s",
                         (run_id,))
-        conn.commit()
+        if commit:
+            conn.commit()
     except Exception as exc:
         conn.rollback()
+        if not commit:
+            raise
         with conn.cursor() as cur:
             cur.execute("UPDATE dataset.etl_run SET status = 'FAILED', finished_at = now(), notes = %s "
                         "WHERE run_id = %s", (f"error: {type(exc).__name__}", run_id))

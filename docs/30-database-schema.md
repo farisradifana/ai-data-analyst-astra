@@ -18,6 +18,7 @@ without password (cannot log in until the owner sets one).
 | `20261117090300_dataset_rls_and_grants.sql` | RLS on all 14 tables, per-role policies, table and column grants, default-privilege revokes |
 | `20261117090400_dataset_reporting_views.sql` | 9 `security_invoker` views for Looker Studio |
 | `20261117100000_quarantine_rule_catalog.sql` | `quarantine_rule` catalog (12 rules), `quarantine_record.rule_id` / `failed_columns` / `depends_on`, statuses OPEN / GRADUATED / SUPERSEDED / DISMISSED, views `v_quarantine_open` (+ rule columns) and `v_quarantine_lifecycle`. See doc 31 |
+| `20261118090000_quarantine_correction.sql` | `quarantine_correction` (one fix per cell, applied by every ETL run; analyst SELECT/INSERT/UPDATE, no DELETE; reporting sees metadata only), `quarantine_record.corrected_columns`, view `v_correction_status`. See doc 31 |
 
 Every migration is idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
 None contains DROP TABLE, TRUNCATE or DELETE.
@@ -54,7 +55,7 @@ Looker Studio connects as `astra_reporting` and should use the `v_*` views. `SEL
 
 `v_customers_public`, `v_employees_public`, `v_suppliers_public`, `v_sales_daily`,
 `v_service_daily`, `v_expenses_monthly`, `v_inventory_latest`, `v_etl_run_summary`,
-`v_quarantine_open`, `v_quarantine_lifecycle`.
+`v_quarantine_open`, `v_quarantine_lifecycle`, `v_correction_status`.
 
 ## Tests
 

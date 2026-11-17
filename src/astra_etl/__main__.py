@@ -1,4 +1,7 @@
-"""CLI: PYTHONPATH=src python -m astra_etl [--dry-run] [--trigger MANUAL|SCHEDULED|REPROCESS]
+"""CLI: PYTHONPATH=src python -m astra_etl [--dry-run] [--offline] [--trigger MANUAL|SCHEDULED|REPROCESS]
+
+Active corrections (python -m astra_etl.fix) are read from the database and applied first.
+--dry-run reads them but writes nothing; --offline (dry runs only) skips the database entirely.
 
 Writes a counts-only summary to reports/etl/last_run_summary.json and .md (no record content).
 """
@@ -10,6 +13,7 @@ import json
 import subprocess
 import sys
 import time
+from collections import Counter
 
 from .db import ROOT, connect
 from .spec import SPECS
@@ -54,21 +58,34 @@ def write_summary(results, mode: str, run_id: str | None) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="astra_etl")
     ap.add_argument("--dry-run", action="store_true", help="validate only, no database writes")
+    ap.add_argument("--offline", action="store_true", help="with --dry-run: no database, no corrections")
     ap.add_argument("--trigger", default="MANUAL", choices=["MANUAL", "SCHEDULED", "REPROCESS"])
     args = ap.parse_args(argv)
+    if args.offline and not args.dry_run:
+        ap.error("--offline needs --dry-run")
 
     t0 = time.perf_counter()
-    results = transform(ROOT / "raw-data")
-    print(f"transform ok in {time.perf_counter() - t0:.1f}s")
-    run_id = None
-    if not args.dry_run:
-        from .load import load  # needs psycopg2; dry runs do not
+    conn = None if args.offline else connect("analyst")
+    try:
+        corrections = []
+        if conn is not None:
+            from .fix import fetch_corrections
 
-        conn = connect("analyst")
-        try:
+            corrections = fetch_corrections(conn)
+            conn.rollback()
+        results = transform(ROOT / "raw-data", corrections)
+        print(f"transform ok in {time.perf_counter() - t0:.1f}s ({len(corrections)} active corrections)")
+        run_id = None
+        if not args.dry_run:
+            from .load import load
+
             run_id = str(load(conn, results, args.trigger, _git_version()))
-        finally:
+    finally:
+        if conn is not None:
             conn.close()
+    outcomes = Counter(o for r in results.values() for o in r.correction_outcome.values())
+    if outcomes:
+        print("corrections: " + ", ".join(f"{k} {v}" for k, v in sorted(outcomes.items())))
     write_summary(results, "dry-run" if args.dry_run else "load", run_id)
     for spec in SPECS:
         r = results[spec.name]
