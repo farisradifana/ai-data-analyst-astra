@@ -1,0 +1,139 @@
+{
+  "generated_at": "2026-11-17T16:35:27+00:00",
+  "mode": "load",
+  "run_id": "72887fef-698b-4429-9581-0f297f628735",
+  "tables": [
+    {
+      "table": "customers",
+      "file_sha256": "2b7f1495aa6271fde34a27fa3c2315ef064d84597322292f7aeadc6b500fa2c3",
+      "rows_read": 60120,
+      "rows_loaded": 60000,
+      "rows_quarantined": 0,
+      "rows_duplicate": 120,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 120
+      }
+    },
+    {
+      "table": "employees",
+      "file_sha256": "c8399e08111e467e3cdd2f7226a1b45c1dd6ffdfd36d31fada146c415681229b",
+      "rows_read": 5025,
+      "rows_loaded": 5000,
+      "rows_quarantined": 0,
+      "rows_duplicate": 25,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 25
+      }
+    },
+    {
+      "table": "suppliers",
+      "file_sha256": "9e022483de2b533e57d6fdc06f03d985b0b99d68cad7fc025d7c6c5d51cc37cc",
+      "rows_read": 1510,
+      "rows_loaded": 1500,
+      "rows_quarantined": 0,
+      "rows_duplicate": 10,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 10
+      }
+    },
+    {
+      "table": "products",
+      "file_sha256": "41b21e81c642449434ca71ee5a0a33d9e93250d42b3ce7db6031532dff6e4044",
+      "rows_read": 5035,
+      "rows_loaded": 4930,
+      "rows_quarantined": 70,
+      "rows_duplicate": 35,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 35,
+        "NEGATIVE_AMOUNT": 32,
+        "REQUIRED_FIELD_MISSING": 38
+      }
+    },
+    {
+      "table": "sales_transactions",
+      "file_sha256": "c717a783ef18047a6ced36bdf5011b3a874733f465c476df5f63a6e049fd7730",
+      "rows_read": 220300,
+      "rows_loaded": 215955,
+      "rows_quarantined": 4045,
+      "rows_duplicate": 300,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 300,
+        "NUMERIC_VALUE_INVALID": 300,
+        "ORPHAN_KEY_NOT_IN_SOURCE": 751,
+        "ORPHAN_PARENT_QUARANTINED": 2994
+      }
+    },
+    {
+      "table": "service_orders",
+      "file_sha256": "d057c7d560fa450542d36ae418d69c463197ec94c1df7fbad37cdfc6668e39c4",
+      "rows_read": 18020,
+      "rows_loaded": 17612,
+      "rows_quarantined": 388,
+      "rows_duplicate": 20,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 20,
+        "ORPHAN_KEY_NOT_IN_SOURCE": 138,
+        "ORPHAN_PARENT_QUARANTINED": 250
+      }
+    },
+    {
+      "table": "procurement",
+      "file_sha256": "c2c5718a71ed93abbc55b39c88e75597704b73188a3184e178012f2bad0138bd",
+      "rows_read": 30045,
+      "rows_loaded": 29388,
+      "rows_quarantined": 612,
+      "rows_duplicate": 45,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 45,
+        "ORPHAN_KEY_NOT_IN_SOURCE": 191,
+        "ORPHAN_PARENT_QUARANTINED": 421
+      }
+    },
+    {
+      "table": "inventory",
+      "file_sha256": "f44a0d8526f64d1d65f2805b044e8d38ba863261948f101d057115e93059135c",
+      "rows_read": 35080,
+      "rows_loaded": 34401,
+      "rows_quarantined": 599,
+      "rows_duplicate": 80,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 80,
+        "NUMERIC_VALUE_INVALID": 37,
+        "ORPHAN_PARENT_QUARANTINED": 499,
+        "REQUIRED_FIELD_MISSING": 63
+      }
+    },
+    {
+      "table": "expenses",
+      "file_sha256": "bef4011f701e963028dc11008cd0737fc1dc29eb1a3fae3ea710186dca5a7716",
+      "rows_read": 25025,
+      "rows_loaded": 24880,
+      "rows_quarantined": 120,
+      "rows_duplicate": 25,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 25,
+        "NEGATIVE_AMOUNT": 47,
+        "REQUIRED_FIELD_MISSING": 73
+      }
+    },
+    {
+      "table": "attendance",
+      "file_sha256": "0032c096a587f3d048997ab838d1b464eb94a1b29352c07058a85b71295518df",
+      "rows_read": 35040,
+      "rows_loaded": 34850,
+      "rows_quarantined": 150,
+      "rows_duplicate": 40,
+      "rules": {
+        "EXACT_DUPLICATE_ROW": 40,
+        "ORPHAN_KEY_NOT_IN_SOURCE": 73,
+        "REQUIRED_FIELD_MISSING": 77
+      }
+    }
+  ],
+  "totals": {
+    "rows_read": 435200,
+    "rows_loaded": 428516,
+    "rows_quarantined": 5984,
+    "rows_duplicate": 700
+  }
+}
