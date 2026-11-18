@@ -103,10 +103,14 @@ The existing workflows (including "Customer service agent") are not changed.
   - the workflow inactive and the chat not public;
   - model id normalisation and rejection;
   - the system-prompt rules.
-- Not verified yet:
-  - the import into n8n and a chat answer from Gemini. Both need H4 (credentials) and a valid `LLM_MODEL`.
-  - On 2026-11-18, `LLM_MODEL` in `.env` held a `provider/model` value, so `build` stopped with exit 2.
-    The user will change it to a Gemini id.
+- Live in n8n (2026-11-18, Astra n8n on http://astra.localhost:5698):
+  - The user created both credentials and imported the workflow.
+  - "Berapa net revenue 2025?" → Rp 54.269.362.661.171, matching doc 34 S1. The agent called `get_sales_kpis`.
+    Read from the n8n execution log (run 14, success, about 80 s end to end).
+  - Model `models/gemini-3.5-flash`. Earlier runs failed:
+    - `gemini-3.6-flash`: "resource ... could not be found" (the key has no access to that model).
+    - `gemini-3.8-flash`: "too many requests". n8n retries rate limits quietly, so the chat looked frozen for about 3 minutes.
+    - If the chat hangs, check the model's quota in Google AI Studio first.
 
 ## Not in this phase
 

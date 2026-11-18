@@ -119,7 +119,8 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    - Back up `%USERPROFILE%\.n8n-astra\.n8n\config` in your password manager: it holds the key that encrypts
      this instance's credentials.
 
-- [ ] H4 done
+- [x] H4 done (2026-11-18: credentials in the Astra n8n, workflow imported, chat answered 2025 net revenue
+  correctly with `gemini-3.5-flash`. Keep `LLM_MODEL` in `.env` on that id so `.\astra n8n build` matches.)
 
 ## H5 — Looker Studio connectivity decision (Phase 8)
 
