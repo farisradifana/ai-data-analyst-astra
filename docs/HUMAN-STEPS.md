@@ -98,7 +98,11 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
 5. After H1, create the n8n Postgres credential yourself (n8n → Credentials → Postgres) with the
    **read-only** `astra_reporting` user: host `aws-1-ap-southeast-1.pooler.supabase.com`, port `5432`,
    database `postgres`, user `astra_reporting.<project_ref>`, SSL required.
-6. Start n8n when needed:
+   Name it exactly `Astra reporting (read-only)`: the data assistant workflow refers to it by that name.
+   Upload `supabase-ca.crt` as the SSL CA.
+6. `LLM_MODEL` must be a plain Gemini id, for example `gemini-2.5-flash`, not `provider/model`.
+   Then run `.\astra n8n build` and import `n8n\build\astra_data_assistant.json` (doc 35, "Install in n8n").
+7. Start n8n when needed:
    ```bash
    n8n start
    ```

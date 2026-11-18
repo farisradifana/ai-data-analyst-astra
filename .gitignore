@@ -37,3 +37,6 @@ models/
 Thumbs.db
 .vscode/
 .idea/
+
+# Generated n8n workflow (built from src/astra_n8n with LLM_MODEL from .env)
+n8n/build/
