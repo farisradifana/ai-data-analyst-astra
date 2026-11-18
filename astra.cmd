@@ -4,6 +4,7 @@ rem   .\astra etl [--dry-run] [--offline]          run the ETL (load to Supabase
 rem   .\astra fix list^|show^|set^|drop^|history ...  fix quarantined rows in the database
 rem   .\astra notify check^|preview^|test           Telegram alerts (counts only)
 rem   .\astra n8n build^|lint^|check-live           the n8n data assistant workflow (doc 35)
+rem   .\astra n8n-start                             n8n on http://127.0.0.1:5698 (Supabase CA trusted)
 rem   .\astra daily [-DryRun] [-NoNotify]           the scheduled daily job (time limit + log)
 rem   .\astra schedule [-Show^|-Unregister^|-At HH:MM]  Task Scheduler entry for the daily job
 rem   .\astra check-db                             test the database connection
@@ -32,6 +33,7 @@ if /i "%CMD%"=="etl" goto etl
 if /i "%CMD%"=="fix" goto etl
 if /i "%CMD%"=="notify" goto etl
 if /i "%CMD%"=="n8n" goto n8n
+if /i "%CMD%"=="n8n-start" goto n8nstart
 if /i "%CMD%"=="daily" goto daily
 if /i "%CMD%"=="schedule" goto schedule
 if /i "%CMD%"=="check-db" goto checkdb
@@ -44,6 +46,7 @@ echo   etl [--dry-run] [--offline]       run the ETL (load to Supabase)
 echo   fix list ^| show ^| set ^| drop ^| history   fix quarantined rows (add -h for help)
 echo   notify check ^| preview ^| test    Telegram alerts (add -h for help)
 echo   n8n build ^| lint ^| check-live   the n8n data assistant workflow (doc 35)
+echo   n8n-start                         start n8n on http://127.0.0.1:5698 (Supabase CA trusted)
 echo   daily [-DryRun] [-NoNotify]       the scheduled daily job (time limit + log in logs\etl)
 echo   schedule [-Show ^| -Unregister ^| -At HH:MM]   Task Scheduler entry "Astra Daily ETL"
 echo   check-db                          test the database connection
@@ -59,6 +62,15 @@ exit /b %ERRORLEVEL%
 
 :n8n
 python -m astra_n8n%REST%
+exit /b %ERRORLEVEL%
+
+:n8nstart
+rem n8n editor on http://127.0.0.1:5698 only (not reachable from other machines); trusts the Supabase CA
+rem so the Postgres credential can use SSL Require without "Ignore SSL Issues".
+set "N8N_PORT=5698"
+set "N8N_LISTEN_ADDRESS=127.0.0.1"
+set "NODE_EXTRA_CA_CERTS=%ROOT%secrets\supabase-ca.crt"
+n8n start%REST%
 exit /b %ERRORLEVEL%
 
 :daily

@@ -73,9 +73,9 @@ From the project folder, in PowerShell or cmd:
 2. In n8n, create a Postgres credential named exactly **`Astra reporting (read-only)`**:
    - Session pooler host and port 5432, database `postgres`, user `astra_reporting.<project_ref>`.
    - SSL: **Require**. Keep "Ignore SSL Issues (Insecure)" **off**.
-   - n8n 2.35.7 has no CA upload field in this credential. Start n8n with the Supabase CA trusted:
-     `$env:NODE_EXTRA_CA_CERTS = "F:\data-analyst-astra\secrets\supabase-ca.crt"; n8n start` (PowerShell).
-     Without it, the connection test fails with `self-signed certificate in certificate chain`.
+   - n8n 2.35.7 has no CA upload field in this credential. Start n8n with `.\astra n8n-start`:
+     it sets `NODE_EXTRA_CA_CERTS` to `secrets\supabase-ca.crt` and serves the editor on http://127.0.0.1:5698.
+     Without the CA, the connection test fails with `self-signed certificate in certificate chain`.
 3. Check that the Gemini credential is named **`Google Gemini(PaLM) Api account`**. That name already exists in this n8n.
 4. In n8n: Workflows → Import from File → choose `n8n\build\astra_data_assistant.json`.
    If a node shows a credential warning, select the credential on that node.
