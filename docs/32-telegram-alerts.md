@@ -86,4 +86,5 @@ The notifier never reads the database.
 - `deliver` never raising;
 - the ETL sending a failure alert and raising again, while dry runs and `--no-notify` send nothing.
 
-The live test of each category waits for H3.
+Live check (2026-11-18): `check --online` → bot ok, supergroup with topics on;
+`notify test` was delivered to the configured topic. The first real load will send the first `ETL_SUCCESS`.

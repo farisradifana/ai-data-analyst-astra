@@ -81,7 +81,7 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    ```
    `check --online` sends no message. See [32-telegram-alerts.md](32-telegram-alerts.md).
 
-- [ ] H3 done
+- [x] H3 done (2026-11-18: token, chat and topic set; `.\astra notify test` delivered)
 
 ## H4 — Gemini + n8n credentials (Phase 9) — ~10 min
 
