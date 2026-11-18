@@ -110,6 +110,8 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    - The editor opens at http://astra.localhost:5698 (this PC only). Keep the window open; Ctrl+C stops it.
    - Use that address, not `127.0.0.1:5698`. Browser cookies ignore the port, so on `127.0.0.1` the other n8n
      instances overwrite this one's login cookie and saving fails with "Unauthorized".
+   - The launcher sets `N8N_SECURE_COOKIE=false`. Without it n8n shows "configured to use a secure cookie" on
+     `astra.localhost` (plain HTTP). This is acceptable only because n8n listens on 127.0.0.1. Restart n8n after updating.
    - It is a separate n8n with its own data folder `%USERPROFILE%\.n8n-astra`, so it runs next to your
      other n8n instances (5678 / 5688). Its task runner uses port 5699.
    - First start: create the n8n owner account, then create the two credentials (steps 3 and 5) in **this**

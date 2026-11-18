@@ -76,6 +76,9 @@ rem Open it as http://astra.localhost:5698: browser cookies ignore the port, so 
 rem n8n instances overwrite this one's n8n-auth login cookie (save fails with "Unauthorized").
 set "N8N_EDITOR_BASE_URL=http://astra.localhost:5698"
 set "N8N_LISTEN_ADDRESS=127.0.0.1"
+rem Plain HTTP on a loopback-only port: n8n's secure cookie would be refused on astra.localhost.
+rem Safe here because the editor is bound to 127.0.0.1 only. Do not copy this to a reachable n8n.
+set "N8N_SECURE_COOKIE=false"
 rem Task runner broker: 5699 (the other n8n uses the default 5679), loopback only.
 set "N8N_RUNNERS_BROKER_PORT=5699"
 set "N8N_RUNNERS_BROKER_LISTEN_ADDRESS=127.0.0.1"
