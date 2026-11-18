@@ -180,7 +180,8 @@ NUMERIC_VALUE_INVALID 337; REQUIRED_FIELD_MISSING 251; NEGATIVE_AMOUNT 79.
 **Correction overlay (0007, 2026-11-18).** Before 0008, fixes were stored in `dataset.quarantine_correction`
 and every run re-read the CSVs and re-created the quarantine records (statuses OPEN / SUPERSEDED / GRADUATED /
 DISMISSED). Fix #2 (`PRD00148 list_price`) graduated 70 rows that way.
-`quarantine_correction` is now read-only legacy. Its rows were copied to `quarantine_edit`.
+Its 2 rows were copied to `quarantine_edit` in 0008. Migration 0009 (2026-11-18) dropped
+`quarantine_correction` and its view `v_correction_status`. `.stra fix history` still shows those 2 edits as `legacy correction`.
 
 **Migration 0008 (2026-11-18).** It kept the 5,914 OPEN rows as the live quarantine.
 It moved the history (17,882 SUPERSEDED, 2,800 duplicates, 70 GRADUATED) to `quarantine_archive`
