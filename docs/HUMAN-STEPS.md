@@ -121,6 +121,13 @@ pooler, database `postgres`, user `astra_reporting.<project_ref>`, its password,
 **Enable SSL** and upload `supabase-ca.crt`. Sign in with your own Google account; Claude cannot
 log in for you. Do not share the data source with "Anyone with link" editing rights.
 
+Then build the report from [doc 34](34-looker-studio-dashboards.md):
+1. Add one data source per `v_*` view listed there (schema `dataset`).
+2. Build the 8 pages with the KPI formulas and filters from doc 34.
+3. Set the date range to 2025 and compare each scorecard with the "2025 reference" column.
+   A different number means a filter or an aggregation is wrong.
+4. Share as Viewer with named people only.
+
 - [ ] H5 done
 
 ## H6 — Approve scheduled job (Phase 10)

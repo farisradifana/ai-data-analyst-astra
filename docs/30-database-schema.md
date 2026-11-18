@@ -21,9 +21,10 @@ without password (cannot log in until the owner sets one).
 | `20261118090000_quarantine_correction.sql` | `quarantine_correction` (one fix per cell, applied by every ETL run; analyst SELECT/INSERT/UPDATE, no DELETE; reporting sees metadata only), `quarantine_record.corrected_columns`, view `v_correction_status`. See doc 31 |
 | `20261118120000_live_quarantine.sql` | Each file read once (`source_file` registry; `etl_run_file` key now run + table + file). `quarantine_record` holds only rows still to fix (one per source row, `source_file`, `last_checked_run_id`); edits logged in `quarantine_edit`; rows that leave go to `quarantine_archive` (GRADUATED / DUPLICATE_DROPPED / DROPPED / SUPERSEDED, labels only). History of 0006/0007 moved to the archive; `quarantine_correction` made read-only legacy (dropped in 0009). Graduation path `FIX_SOURCE` renamed `FIX_IN_QUARANTINE`. `astra_analyst` gets DELETE on `quarantine_record` only. See doc 31 |
 | `20261118150000_drop_legacy_correction.sql` | Drops `quarantine_correction` and view `v_correction_status` (unused since 0008). Stops first if any of its rows is missing from `quarantine_edit`. `quarantine_record.corrected_columns` stays |
+| `20261118170000_kpi_reporting_views.sql` | KPI views for Looker Studio (doc 34): `v_sales_daily` gains `cost_amount` / `gross_margin`; new `v_procurement_monthly`, `v_attendance_daily`, `v_customer_activity_monthly`, and the all-table quarantine views `v_quarantine_monitor` (rows still to fix by table / rule / graduation path / file / failed columns / age bucket) and `v_quarantine_flow_daily` (rows in and out per day). No grant on a base table changes |
 
 Every migration is idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
-None contains DROP TABLE, TRUNCATE or DELETE.
+None contains TRUNCATE or DELETE. Only 0009 contains DROP TABLE (approved 2026-11-18, guarded by a check).
 
 ## Design rules
 
@@ -57,7 +58,10 @@ Looker Studio connects as `astra_reporting` and should use the `v_*` views. `SEL
 
 `v_customers_public`, `v_employees_public`, `v_suppliers_public`, `v_sales_daily`,
 `v_service_daily`, `v_expenses_monthly`, `v_inventory_latest`, `v_etl_run_summary`,
-`v_quarantine_open`, `v_quarantine_lifecycle` (open rows + archive). (`v_correction_status` was dropped in 0009.)
+`v_quarantine_open`, `v_quarantine_lifecycle` (open rows + archive), and from 0010
+`v_procurement_monthly`, `v_attendance_daily`, `v_customer_activity_monthly`, `v_quarantine_monitor`,
+`v_quarantine_flow_daily`. (`v_correction_status` was dropped in 0009.) KPI formulas and the report
+layout: [doc 34](34-looker-studio-dashboards.md).
 
 ## Tests
 
