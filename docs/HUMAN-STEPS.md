@@ -103,12 +103,17 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    start n8n with `.\astra n8n-start` (step 7), which trusts the Supabase CA.
 6. `LLM_MODEL` must be a plain Gemini id, for example `gemini-2.5-flash`, not `provider/model`.
    Then run `.\astra n8n build` and import `n8n\build\astra_data_assistant.json` (doc 35, "Install in n8n").
-7. Start n8n when needed, from the project folder (PowerShell or cmd). Stop any other n8n first:
-   two n8n processes must not share the same `%USERPROFILE%\.n8n` data folder.
+7. Start the Astra n8n when needed, from the project folder (PowerShell or cmd):
    ```powershell
    .\astra n8n-start
    ```
-   The editor opens at http://127.0.0.1:5698 (this PC only). Keep the window open; Ctrl+C stops n8n.
+   - The editor opens at http://127.0.0.1:5698 (this PC only). Keep the window open; Ctrl+C stops it.
+   - It is a separate n8n with its own data folder `%USERPROFILE%\.n8n-astra`, so it runs next to your
+     other n8n instances (5678 / 5688). Its task runner uses port 5699.
+   - First start: create the n8n owner account, then create the two credentials (steps 3 and 5) in **this**
+     instance. Credentials from the other n8n are not visible here.
+   - Back up `%USERPROFILE%\.n8n-astra\.n8n\config` in your password manager: it holds the key that encrypts
+     this instance's credentials.
 
 - [ ] H4 done
 

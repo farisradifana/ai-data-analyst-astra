@@ -65,12 +65,20 @@ python -m astra_n8n%REST%
 exit /b %ERRORLEVEL%
 
 :n8nstart
-rem n8n editor on http://127.0.0.1:5698 only (not reachable from other machines); trusts the Supabase CA
-rem so the Postgres credential can use SSL Require without "Ignore SSL Issues".
+rem Separate n8n for Astra: editor on http://127.0.0.1:5698 only (not reachable from other machines),
+rem own data folder %USERPROFILE%\.n8n-astra (outside the repo: it holds credentials and the encryption
+rem key), so it can run next to the other n8n on 5688. Trusts the Supabase CA so the Postgres credential
+rem can use SSL Require without "Ignore SSL Issues".
+set "N8N_USER_FOLDER=%USERPROFILE%\.n8n-astra"
+set "N8N_DIAGNOSTICS_ENABLED=false"
 set "N8N_PORT=5698"
 set "N8N_LISTEN_ADDRESS=127.0.0.1"
+rem Task runner broker: 5699 (the other n8n uses the default 5679), loopback only.
+set "N8N_RUNNERS_BROKER_PORT=5699"
+set "N8N_RUNNERS_BROKER_LISTEN_ADDRESS=127.0.0.1"
 set "NODE_EXTRA_CA_CERTS=%ROOT%secrets\supabase-ca.crt"
-n8n start%REST%
+rem n8n is a batch shim (n8n.cmd): CALL keeps this script's environment for it.
+call n8n start%REST%
 exit /b %ERRORLEVEL%
 
 :daily

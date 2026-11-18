@@ -75,6 +75,8 @@ From the project folder, in PowerShell or cmd:
    - SSL: **Require**. Keep "Ignore SSL Issues (Insecure)" **off**.
    - n8n 2.35.7 has no CA upload field in this credential. Start n8n with `.\astra n8n-start`:
      it sets `NODE_EXTRA_CA_CERTS` to `secrets\supabase-ca.crt` and serves the editor on http://127.0.0.1:5698.
+     This is a separate n8n (data folder `%USERPROFILE%\.n8n-astra`, task runner port 5699), so create the
+     credentials in it; the other n8n instances keep their own.
      Without the CA, the connection test fails with `self-signed certificate in certificate chain`.
 3. Check that the Gemini credential is named **`Google Gemini(PaLM) Api account`**. That name already exists in this n8n.
 4. In n8n: Workflows → Import from File → choose `n8n\build\astra_data_assistant.json`.
