@@ -1,0 +1,7 @@
+# ETL, fix, notify, n8n build/check and profiling. Run with the system Python 3.12:
+#   python -m pip install -r requirements.txt
+# Tests and the Laya engine use .venv-laya and requirements-laya.txt instead.
+# Versions are the ones verified on the project PC (2026-11-18).
+psycopg2-binary==2.9.11
+python-dotenv==1.2.2
+pandas==2.2.3

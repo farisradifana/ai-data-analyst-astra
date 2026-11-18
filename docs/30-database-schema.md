@@ -24,7 +24,8 @@ without password (cannot log in until the owner sets one).
 | `20261118170000_kpi_reporting_views.sql` | KPI views for Looker Studio (doc 34): `v_sales_daily` gains `cost_amount` / `gross_margin`; new `v_procurement_monthly`, `v_attendance_daily`, `v_customer_activity_monthly`, and the all-table quarantine views `v_quarantine_monitor` (rows still to fix by table / rule / graduation path / file / failed columns / age bucket) and `v_quarantine_flow_daily` (rows in and out per day). No grant on a base table changes |
 
 Every migration is idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
-None contains TRUNCATE or DELETE. Only 0009 contains DROP TABLE (approved 2026-11-18, guarded by a check).
+None contains TRUNCATE. Only 0008 contains DELETE: a one-time cleanup of non-`OPEN` rows in `dataset.quarantine_record`
+(no business table). Only 0009 contains DROP TABLE (approved 2026-11-18, guarded by a check).
 
 ## Design rules
 

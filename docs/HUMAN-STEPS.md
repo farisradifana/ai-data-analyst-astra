@@ -188,5 +188,5 @@ User `astra_analyst.<project_ref>`, password from your `.env`. SSL tab → Use S
 | D2 | `NET30`, `NET 30`, `30 DAYS` all mean Net 30? | Yes, map to `NET30`; original kept in audit |
 | D3 | Sales quantity ≤ 0 or words (`two`)? | Quarantine (`INVALID_NUMERIC_VALUE`); no word-to-number guessing |
 | D4 | Negative expense amount / list price? | Quarantine (`BUSINESS_RULE_VIOLATION`); not treated as refunds |
-| D5 | Exact duplicate rows (700)? | Keep first occurrence, log others as `DUPLICATE_PRIMARY_KEY` in reconciliation |
+| D5 | Exact duplicate rows (700)? | Keep first occurrence; drop the others as `EXACT_DUPLICATE_ROW` (counted in reconciliation). Same key with different values → quarantined as `DUPLICATE_PRIMARY_KEY` |
 | D6 | Blank `employees.manager_id` (19)? | Allowed (top of hierarchy), not rejected |
