@@ -39,20 +39,20 @@ Run commands from the project folder, in PowerShell or cmd.
 `.\astra test` result line:
 
 ```
-200 passed, 5 deselected in 4.53s
+202 passed, 5 deselected in 4.05s
 ```
 
 | Folder | Tests |
 |---|---:|
 | `tests/etl` (clean 45, notify 13, qa_cases 10, requeue 7, rules 3, transform 5) | 83 |
 | `tests/n8n` (incl. 2 for the Telegram webhook workflow) | 36 |
-| `tests/bot` (Telegram bridge, doc 36) | 37 |
+| `tests/bot` (Telegram bridge, doc 36) | 39 |
 | `tests/decision_engine`, without the marker `laya` | 44 |
-| Total | 200 |
+| Total | 202 |
 
 The 5 deselected tests are the real-model Laya tests. `.\astra test` uses the interpreter in `.venv-laya`.
 
-Latest gate run (2026-11-18 12:06, bounded runner, log in `.validation-logs\20261118-120647`), all PASS:
+Latest gate run (2026-11-18 12:09, bounded runner, log in `.validation-logs\20261118-120935`), all PASS:
 `python -m compileall -q src tests`, `.\astra test`, `.\astra n8n lint`, `.\astra n8n check-live`
 (all 2025 references MATCH, reporting role can INSERT: False), `.\astra etl --dry-run --offline` (39 s),
 `.\astra etl --dry-run` (0 new files, 5,914 quarantine rows rechecked, nothing changed).
