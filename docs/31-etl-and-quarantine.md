@@ -181,7 +181,7 @@ NUMERIC_VALUE_INVALID 337; REQUIRED_FIELD_MISSING 251; NEGATIVE_AMOUNT 79.
 and every run re-read the CSVs and re-created the quarantine records (statuses OPEN / SUPERSEDED / GRADUATED /
 DISMISSED). Fix #2 (`PRD00148 list_price`) graduated 70 rows that way.
 Its 2 rows were copied to `quarantine_edit` in 0008. Migration 0009 (2026-11-18) dropped
-`quarantine_correction` and its view `v_correction_status`. `.stra fix history` still shows those 2 edits as `legacy correction`.
+`quarantine_correction` and its view `v_correction_status`. `.\astra fix history` still shows those 2 edits as `legacy correction`.
 
 **Migration 0008 (2026-11-18).** It kept the 5,914 OPEN rows as the live quarantine.
 It moved the history (17,882 SUPERSEDED, 2,800 duplicates, 70 GRADUATED) to `quarantine_archive`
@@ -201,4 +201,4 @@ and registered the 10 loaded files in `source_file`.
 - Business rows keep `etl_run_id` and `source_row_number`. When one run reads two files of a table, the line
   number alone does not say which file a row came from; `source_file` is stored for quarantine rows only.
 - A row with a blank primary key has no key to type: use `-` as KEY with `--id N`,
-  for example `.stra fix set customers - customer_id CUS000123 --id 77 --reason "..."`.
+  for example `.\astra fix set customers - customer_id CUS000123 --id 77 --reason "..."`.

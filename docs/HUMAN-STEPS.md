@@ -72,6 +72,14 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    ```
    Your user ID: message **@userinfobot**.
 6. Tell Claude whether test alerts may go into that group, or give a private test chat ID first.
+7. Check, then send one test message (only after you agree it may go to that chat):
+   ```powershell
+   .\astra notify check --online
+   ```
+   ```powershell
+   .\astra notify test
+   ```
+   `check --online` sends no message. See [32-telegram-alerts.md](32-telegram-alerts.md).
 
 - [ ] H3 done
 

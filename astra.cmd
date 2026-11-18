@@ -1,8 +1,9 @@
 @echo off
 rem Astra launcher. Same command line in PowerShell and cmd: .\astra <command> [args]
 rem   .\astra etl [--dry-run] [--offline]          run the ETL (load to Supabase)
-rem   .\astra fix list^|show^|set^|off^|status ...    fix quarantined rows in the database
-rem   .\astra check-db                              test the database connection
+rem   .\astra fix list^|show^|set^|drop^|history ...  fix quarantined rows in the database
+rem   .\astra notify check^|preview^|test           Telegram alerts (counts only)
+rem   .\astra check-db                             test the database connection
 rem   .\astra test                                  unit tests (.venv-laya)
 rem   .\astra laya-test                             real Laya model tests, offline
 rem   .\astra laya-api                              start the local Laya API (127.0.0.1)
@@ -24,6 +25,7 @@ goto collect
 :dispatch
 if /i "%CMD%"=="etl" goto etl
 if /i "%CMD%"=="fix" goto etl
+if /i "%CMD%"=="notify" goto etl
 if /i "%CMD%"=="check-db" (
   python scripts\check_db_connection.py
   exit /b %ERRORLEVEL%
@@ -48,7 +50,8 @@ if /i "%CMD%"=="laya-eval" (
 )
 echo usage: .\astra ^<command^> [args]
 echo   etl [--dry-run] [--offline]       run the ETL (load to Supabase)
-echo   fix list ^| show ^| set ^| off ^| status   fix quarantined rows (add -h for help)
+echo   fix list ^| show ^| set ^| drop ^| history   fix quarantined rows (add -h for help)
+echo   notify check ^| preview ^| test    Telegram alerts (add -h for help)
 echo   check-db                          test the database connection
 echo   test                              unit tests
 echo   laya-test                         real Laya model tests, offline

@@ -1,0 +1,6 @@
+{
+  "quarantine_new_rows_warn": 500,
+  "quarantine_new_pct_warn": 5.0,
+  "stale_source_warn_on_scheduled": true,
+  "top_rules": 3
+}

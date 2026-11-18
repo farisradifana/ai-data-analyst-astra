@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import pathlib
 
-from dotenv import dotenv_values
-
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def load_env() -> dict[str, str]:
+    from dotenv import dotenv_values  # imported here so modules that use only ROOT need no python-dotenv
+
     env_file = ROOT / ".env"
     if not env_file.exists():
         raise RuntimeError(".env not found")
