@@ -99,7 +99,9 @@ reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pand
    **read-only** `astra_reporting` user: host `aws-1-ap-southeast-1.pooler.supabase.com`, port `5432`,
    database `postgres`, user `astra_reporting.<project_ref>`, SSL required.
    Name it exactly `Astra reporting (read-only)`: the data assistant workflow refers to it by that name.
-   Upload `supabase-ca.crt` as the SSL CA.
+   Set SSL to **Require** and keep "Ignore SSL Issues (Insecure)" **off**. n8n 2.35.7 has no CA upload field, so
+   start n8n with the Supabase CA trusted (PowerShell, from the project folder):
+   `$env:NODE_EXTRA_CA_CERTS = "F:\data-analyst-astra\secrets\supabase-ca.crt"; n8n start`
 6. `LLM_MODEL` must be a plain Gemini id, for example `gemini-2.5-flash`, not `provider/model`.
    Then run `.\astra n8n build` and import `n8n\build\astra_data_assistant.json` (doc 35, "Install in n8n").
 7. Start n8n when needed:
