@@ -146,6 +146,11 @@ def test_failure_alert_hides_error_message():
     assert "CUS000123" not in a.text and "example.com" not in a.text
 
 
+def test_timeout_alert():
+    a = notify.timeout_alert(30)
+    assert (a.category, a.severity) == ("JOB_TIMEOUT", "CRITICAL") and "30 min" in a.text
+
+
 def test_deliver_never_raises():
     api = FakeApi(*[(403, {"ok": False, "description": "bot was kicked"})] * 2)
     c, _ = _client(api)

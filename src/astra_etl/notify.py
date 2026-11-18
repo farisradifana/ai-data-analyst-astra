@@ -9,6 +9,7 @@ From the project folder, in PowerShell or cmd:
   .\astra notify check --online    also ask Telegram if the bot can see the chat (sends no message)
   .\astra notify preview           print the alerts the last run summary would send (no network)
   .\astra notify test              send one test message to the configured chat
+  .\astra notify timeout --minutes N   JOB_TIMEOUT alert (sent by scripts\daily_etl.ps1)
 
 Sending: plain text (no HTML/Markdown parsing), at most 4096 characters, at least 1.1 s between
 messages and at most 18 per minute (Telegram's group limit is 20). Network errors, HTTP 429 and 5xx
@@ -218,6 +219,14 @@ def failure_alert(stage: str, error: BaseException, trigger: str) -> Alert:
                  "See the console output or logs on the ETL machine.")
 
 
+def timeout_alert(minutes: int) -> Alert:
+    """Sent by scripts/daily_etl.ps1 when it stops a scheduled run that ran too long."""
+    return Alert("JOB_TIMEOUT", CRITICAL,
+                 f"[ASTRA ETL] FAILED - SCHEDULED - stopped after {int(minutes)} min (time limit)\n"
+                 "The open transaction was rolled back, so nothing from this run was committed.\n"
+                 "See logs\\etl on the ETL machine.")
+
+
 def deliver(alerts: list[Alert], client: Telegram | None, log: Callable = print) -> int:
     """Sends each alert; never raises (alerting must not break the ETL). Returns the number sent."""
     if client is None:
@@ -250,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--online", action="store_true", help="getMe + getChat (sends no message)")
     sub.add_parser("preview")
     sub.add_parser("test")
+    p = sub.add_parser("timeout", help="send a JOB_TIMEOUT alert (used by scripts/daily_etl.ps1)")
+    p.add_argument("--minutes", type=int, required=True)
     a = ap.parse_args(argv)
 
     if a.cmd == "preview":
@@ -279,6 +290,10 @@ def main(argv: list[str] | None = None) -> int:
                 chat = client.call("getChat", {"chat_id": cfg.chat_id})
                 print(f"bot ok (is_bot={me.get('is_bot')}); chat visible, type={chat.get('type')}"
                       + (f", topics={'on' if chat.get('is_forum') else 'off'}" if chat.get("type") == "supergroup" else ""))
+            return 0
+        if a.cmd == "timeout":
+            client.send(timeout_alert(max(1, min(a.minutes, 1440))).text)
+            print("timeout alert sent")
             return 0
         client.send("[ASTRA] Test alert - SYNTHETIC platform. If you can read this, ETL alerts reach this chat.")
         print("test message sent")

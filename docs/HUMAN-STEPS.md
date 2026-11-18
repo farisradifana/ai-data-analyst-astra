@@ -125,8 +125,16 @@ log in for you. Do not share the data source with "Anyone with link" editing rig
 
 ## H6 — Approve scheduled job (Phase 10)
 
-Claude will propose a Windows Task Scheduler entry (e.g. daily 02:00 incremental run). Reply
-"approve schedule" to create it.
+The daily job is ready (doc 33). It creates the Task Scheduler entry "Astra Daily ETL" for your user,
+daily at 02:00, and runs only while you are signed in. Choose the time, then run it yourself or reply
+"approve schedule":
+```powershell
+.\astra schedule -At 02:00
+```
+```powershell
+.\astra schedule -Show
+```
+To remove it: `.\astra schedule -Unregister`.
 
 - [ ] H6 done
 

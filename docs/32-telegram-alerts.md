@@ -48,6 +48,7 @@ Then, from the project folder:
 | `ETL_SUCCESS` | INFO | Every load | Run id (first 8 characters), trigger, new files per table, rows read / loaded / quarantined / duplicate, quarantine rechecked / graduated / still to fix, top 3 open rules, duration |
 | `QUARANTINE_SPIKE` | WARNING | New quarantined rows ≥ 500, or ≥ 5 % of the new rows read | Count, share, the 3 tables with the most |
 | `STALE_SOURCE` | WARNING | A `--trigger SCHEDULED` run found no new file | Fixed text |
+| `JOB_TIMEOUT` | CRITICAL | The daily job (`scripts/daily_etl.ps1`) stopped a run at its time limit | Minutes, fixed text |
 | `ETL_FAILED` | CRITICAL | The load raised an error | Stage (connect, lock, read state, read files, validate, load) and the error **type** only |
 | `TEST` | — | `.\astra notify test` | Fixed text |
 
@@ -74,7 +75,7 @@ The notifier never reads the database.
 
 ## Tests
 
-`tests/etl/test_notify.py` has 12 offline tests, with no network. They cover:
+`tests/etl/test_notify.py` has 13 offline tests, with no network. They cover:
 - the config rules;
 - the token never appearing in errors;
 - retries on 5xx, network errors and 429;
