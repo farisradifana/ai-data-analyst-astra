@@ -9,7 +9,10 @@ This doc is the build sheet for the Looker Studio report (H5). All data is SYNTH
 - **Use only the `v_*` views below, never the base tables.**
   - `astra_reporting` cannot read names, emails, phones, salaries or record values.
   - The views are already aggregated, so the report stays fast.
-- **One data source per view.** In Looker Studio: Add data → PostgreSQL → pick the view from schema `dataset`.
+- **One data source per view, through CUSTOM QUERY.** The Looker Studio PostgreSQL table list shows only the
+  `public` schema, and this project keeps everything in `dataset`, so the list after sign-in is empty. That is
+  expected. In Looker Studio: Add data → PostgreSQL → enter the connection → choose **CUSTOM QUERY** (not TABLE)
+  → query `SELECT * FROM dataset.v_sales_daily` (one view per data source) → Add. Do not put views in `public`.
   Then set the date column type to *Date*. Set money columns to *Currency (IDR)* and counts to *Number*.
 - **Revenue counts only completed sales.** Filter `transaction_status = COMPLETED` (and `service_status = COMPLETED` for service).
 - **Recompute ratios from sums.** Never average a ratio column. Example: `SUM(gross_margin) / SUM(net_amount)`.

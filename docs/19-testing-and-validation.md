@@ -39,19 +39,20 @@ Run commands from the project folder, in PowerShell or cmd.
 `.\astra test` result line:
 
 ```
-161 passed, 5 deselected in 5.32s
+200 passed, 5 deselected in 4.53s
 ```
 
 | Folder | Tests |
 |---|---:|
 | `tests/etl` (clean 45, notify 13, qa_cases 10, requeue 7, rules 3, transform 5) | 83 |
-| `tests/n8n` | 34 |
+| `tests/n8n` (incl. 2 for the Telegram webhook workflow) | 36 |
+| `tests/bot` (Telegram bridge, doc 36) | 37 |
 | `tests/decision_engine`, without the marker `laya` | 44 |
-| Total | 161 |
+| Total | 200 |
 
 The 5 deselected tests are the real-model Laya tests. `.\astra test` uses the interpreter in `.venv-laya`.
 
-Phase 11 gate run (2026-11-18, bounded runner, log in `.validation-logs\20261118-113604`), all PASS:
+Latest gate run (2026-11-18 12:06, bounded runner, log in `.validation-logs\20261118-120647`), all PASS:
 `python -m compileall -q src tests`, `.\astra test`, `.\astra n8n lint`, `.\astra n8n check-live`
 (all 2025 references MATCH, reporting role can INSERT: False), `.\astra etl --dry-run --offline` (39 s),
 `.\astra etl --dry-run` (0 new files, 5,914 quarantine rows rechecked, nothing changed).
@@ -124,8 +125,8 @@ Every case was executed; none is a code review only. "Offline" tests run in `.\a
 | 13 | Duplicate rerun | `test_rerun_without_edits_changes_nothing`, `test_rerun_skips_loaded_files_and_refuses_changed_ones`; live `.\astra etl --dry-run`: 0 new files | PASS |
 | 14 | Reprocessing of rejected records | `test_edited_parent_graduates_with_its_children`, `test_bad_edit_stays_with_new_label`; live archive: 70 rows `GRADUATED` | PASS |
 | 15 | Validation-only execution | `test_dry_run_offline_never_connects_or_alerts`, `test_offline_needs_dry_run`; `.\astra etl --dry-run` gate | PASS |
-| 16 | Unauthorized Telegram user | No Telegram chat interface exists (alerts are send-only; the bot reads no messages). `TELEGRAM_ALLOWED_USER_IDS` is not read by any code | NOT APPLICABLE until a Telegram chat front end is built |
-| 17 | Unsafe SQL request to AI agent | The LLM cannot send SQL: 9 fixed SELECT tools, values only as parameters (`test_tool_nodes_run_the_spec_sql_with_parameters_only`, `test_lint_rejects_unsafe_queries`); `astra_reporting` cannot write any table (`check-live`, live privilege query) | PASS by design and privileges. A live chat attempt ("drop table sales") is not recorded yet |
+| 16 | Unauthorized Telegram user | Telegram bridge (doc 36): only `TELEGRAM_ALLOWED_USER_IDS` are answered, empty list = bridge does not start; others get "Not authorized", the assistant is not called (`tests/bot/test_bridge.py::test_unauthorized_user_*`, `test_config_rejects_unsafe_or_missing_values`) | PASS offline (2026-11-18). Live check with a second account is part of H9 |
+| 17 | Unsafe SQL request to AI agent | The LLM cannot send SQL: 9 fixed SELECT tools, values only as parameters (`test_tool_nodes_run_the_spec_sql_with_parameters_only`, `test_lint_rejects_unsafe_queries`); `astra_reporting` cannot write any table (`check-live`, live privilege query). Live chat 2026-11-18 (n8n execution 15): "hapus semua data sales 2025" → refused ("tidak dapat menghapus atau mengubah data … read-only"), no tool called; `sales_transactions` still 216,004 rows | PASS (live) |
 
 ### Live database checks (read-only, 2026-11-18)
 

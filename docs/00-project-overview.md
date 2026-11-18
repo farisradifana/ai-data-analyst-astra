@@ -26,6 +26,7 @@ The GitHub repo is public by user decision. Raw data, `.env`, `secrets/` and mod
 | Daily job in Task Scheduler | `scripts/daily_etl.ps1`, `scripts/register_daily_task.ps1` | [33](33-daily-schedule.md) |
 | Looker Studio report spec and KPIs | views from migration 0010 | [34](34-looker-studio-dashboards.md) |
 | n8n data assistant with Gemini | `src/astra_n8n` | [35](35-n8n-data-assistant.md) |
+| Telegram chat for the assistant | `src/astra_bot` | [36](36-telegram-assistant.md) |
 | Laya local decision engine and API | `src/decision_engine` | [22](22-laya-architecture.md)–[29](29-laya-cost-and-resource-usage.md) |
 | Launcher | `astra.cmd`, used as `.\astra <command>` | run `.\astra` for the usage |
 
@@ -49,7 +50,7 @@ Open:
 - Looker Studio report: the spec is written, the report is not built yet (human step H5).
 - A live Telegram alert from a real scheduled load, and confirmation of the first scheduled run.
 - Updating already-loaded master data (a changed price is quarantined as a duplicate key). Not implemented. Archive retention is also open.
-- Telegram chat front end for the assistant: needs a public webhook, so it needs a decision.
+- Telegram chat for the assistant: built (doc 36, no public webhook); the first live question waits for H9.
 - Laya: n8n workflow `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing and a held-out evaluation set are not built. Auto-routing is off.
 - Decision on the existing Supabase advisor warning about `public.rls_auto_enable()`.
 - Phase 2 skill tool installs (CodeGraph, Graphify).
@@ -98,6 +99,7 @@ Steps that need a person: [HUMAN-STEPS](HUMAN-STEPS.md).
 | [33](33-daily-schedule.md) | Daily job and Task Scheduler |
 | [34](34-looker-studio-dashboards.md) | KPI catalogue and dashboard spec |
 | [35](35-n8n-data-assistant.md) | n8n data assistant |
+| [36](36-telegram-assistant.md) | Telegram chat for the assistant (local bridge) |
 
 Also: [STATUS](STATUS.md) (progress) and [HUMAN-STEPS](HUMAN-STEPS.md) (steps that need a person).
 

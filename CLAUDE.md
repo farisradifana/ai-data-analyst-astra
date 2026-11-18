@@ -18,6 +18,7 @@ All user-facing commands go through the launcher `astra.cmd`. Show them as `.\as
 | ETL smoke, no DB | `.\astra etl --dry-run --offline` |
 | ETL dry run against the DB | `.\astra etl --dry-run` |
 | DB connection | `.\astra check-db` |
+| Telegram bridge config (no network) | `.\astra telegram-bot check` |
 
 - ETL code runs on the system Python 3.12 (`requirements.txt`). Tests and Laya use `.venv-laya` (`requirements-laya.txt`).
 - `astra.cmd` must keep CRLF line endings. After editing it, rewrite it with CRLF and check that
@@ -36,4 +37,6 @@ All user-facing commands go through the launcher `astra.cmd`. Show them as `.\as
 - The n8n assistant's LLM never writes SQL: every tool is a fixed, parameterized SELECT in `src/astra_n8n/assistant.py`.
 - Telegram alerts carry counts only, never row data or PII. Ask before sending a test message.
 - Nothing listens on a public interface. n8n (127.0.0.1:5698) and the Laya API (127.0.0.1:8765) stay on loopback.
+  Telegram chat goes through the outbound-only bridge (`src/astra_bot`, doc 36), never a public webhook.
+  The bridge never calls `deleteWebhook`.
 - Update `docs/STATUS.md`, `docs/HUMAN-STEPS.md` and `docs/21-change-log.md` at each milestone.

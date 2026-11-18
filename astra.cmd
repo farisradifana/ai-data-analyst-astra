@@ -4,6 +4,7 @@ rem   .\astra etl [--dry-run] [--offline]          run the ETL (load to Supabase
 rem   .\astra fix list^|show^|set^|drop^|history ...  fix quarantined rows in the database
 rem   .\astra notify check^|preview^|test           Telegram alerts (counts only)
 rem   .\astra n8n build^|lint^|check-live           the n8n data assistant workflow (doc 35)
+rem   .\astra telegram-bot check^|run              Telegram bridge to the data assistant (doc 36)
 rem   .\astra n8n-start                             n8n at http://astra.localhost:5698 (Supabase CA trusted)
 rem   .\astra daily [-DryRun] [-NoNotify]           the scheduled daily job (time limit + log)
 rem   .\astra schedule [-Show^|-Unregister^|-At HH:MM]  Task Scheduler entry for the daily job
@@ -33,6 +34,7 @@ if /i "%CMD%"=="etl" goto etl
 if /i "%CMD%"=="fix" goto etl
 if /i "%CMD%"=="notify" goto etl
 if /i "%CMD%"=="n8n" goto n8n
+if /i "%CMD%"=="telegram-bot" goto tgbot
 if /i "%CMD%"=="n8n-start" goto n8nstart
 if /i "%CMD%"=="daily" goto daily
 if /i "%CMD%"=="schedule" goto schedule
@@ -46,6 +48,7 @@ echo   etl [--dry-run] [--offline]       run the ETL (load to Supabase)
 echo   fix list ^| show ^| set ^| drop ^| history   fix quarantined rows (add -h for help)
 echo   notify check ^| preview ^| test    Telegram alerts (add -h for help)
 echo   n8n build ^| lint ^| check-live   the n8n data assistant workflow (doc 35)
+echo   telegram-bot check ^| run    Telegram bridge to the data assistant (doc 36)
 echo   n8n-start                         start n8n at http://astra.localhost:5698 (Supabase CA trusted)
 echo   daily [-DryRun] [-NoNotify]       the scheduled daily job (time limit + log in logs\etl)
 echo   schedule [-Show ^| -Unregister ^| -At HH:MM]   Task Scheduler entry "Astra Daily ETL"
@@ -62,6 +65,10 @@ exit /b %ERRORLEVEL%
 
 :n8n
 python -m astra_n8n%REST%
+exit /b %ERRORLEVEL%
+
+:tgbot
+python -m astra_bot%REST%
 exit /b %ERRORLEVEL%
 
 :n8nstart

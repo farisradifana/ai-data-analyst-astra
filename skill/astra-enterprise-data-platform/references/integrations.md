@@ -46,5 +46,8 @@ window buffer memory (last 10 messages), and N Postgres **tools**.
 - Client: HTTPS with retry and exponential backoff on network errors and 5xx, honour 429 `retry_after`, no retry on
   other 4xx, spacing ≥ 1.1 s and a per-minute cap. The token never appears in logs or errors.
 - Delivery failure never fails the ETL; dry runs never send.
-- Inbound commands (a Telegram chat front end) need a public webhook for n8n: that is a security decision for the user;
-  restrict by `TELEGRAM_ALLOWED_USER_IDS` when built.
+- Telegram **chat** with the assistant without a public webhook: a local bridge long-polls `getUpdates` (outbound
+  only) and forwards to an n8n Webhook copy of the agent on 127.0.0.1 (Header Auth token). Allow-list
+  `TELEGRAM_ALLOWED_USER_IDS`, default deny, `/ask` in groups, rate limits, bounded run time, no question or
+  answer text in logs. Check `getWebhookInfo` first: a bot whose messages already go to a webhook belongs to
+  another service — use a dedicated bot, never `deleteWebhook` (reference: `src/astra_bot`, doc 36).

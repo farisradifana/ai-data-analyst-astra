@@ -114,3 +114,39 @@ def test_write_workflow_is_valid_json(tmp_path):
     wf = json.loads(out.read_text(encoding="utf-8"))
     model = next(n for n in wf["nodes"] if n["type"].endswith("lmChatGoogleGemini"))
     assert model["parameters"]["modelName"] == MODEL_PLACEHOLDER
+
+
+# ---------------------------------------------------------------- webhook variant for the Telegram bridge (doc 36)
+
+def test_webhook_workflow_uses_header_auth_and_replies_through_a_response_node():
+    from astra_n8n.assistant import TELEGRAM_WORKFLOW_NAME, WEBHOOK_CREDENTIAL, WEBHOOK_PATH
+
+    wf = build_workflow("gemini-2.5-flash", "webhook")
+    assert wf["name"] == TELEGRAM_WORKFLOW_NAME and wf["active"] is False
+    nodes = {n["name"]: n for n in wf["nodes"]}
+    hook = nodes["Webhook"]
+    assert hook["type"] == "n8n-nodes-base.webhook"
+    assert hook["parameters"] == {"httpMethod": "POST", "path": WEBHOOK_PATH, "authentication": "headerAuth",
+                                  "responseMode": "responseNode", "options": {}}
+    assert hook["credentials"] == {"httpHeaderAuth": {"name": WEBHOOK_CREDENTIAL}}
+    assert not any(n["type"].endswith(".chatTrigger") for n in wf["nodes"])
+    assert nodes["Astra data assistant"]["parameters"]["text"] == "={{ $json.body.chatInput }}"
+    assert nodes["Chat memory"]["parameters"]["sessionKey"] == "={{ $json.body.sessionId }}"
+    assert wf["connections"]["Astra data assistant"]["main"][0][0]["node"] == "Reply"
+    assert nodes["Reply"]["type"] == "n8n-nodes-base.respondToWebhook"
+    for t in TOOLS:   # same fixed tools, same read-only credential
+        assert nodes[t.name]["parameters"]["query"] == t.sql
+        assert nodes[t.name]["credentials"] == {"postgres": {"name": POSTGRES_CREDENTIAL}}
+        assert wf["connections"][t.name]["ai_tool"][0][0]["node"] == "Astra data assistant"
+
+
+def test_webhook_workflow_has_its_own_node_ids_and_no_secrets():
+    chat = build_workflow("gemini-2.5-flash")
+    hook = build_workflow("gemini-2.5-flash", "webhook")
+    assert not {n["id"] for n in chat["nodes"]} & {n["id"] for n in hook["nodes"]}
+    assert hook == build_workflow("gemini-2.5-flash", "webhook")      # stable between builds
+    text = json.dumps(hook)
+    for pattern in (r"password", r"api[_-]?key", r"\d{6,}:[A-Za-z0-9_-]{30,}", r'"id":\s*"\d+"'):
+        assert not re.search(pattern, text, re.I), pattern
+    with pytest.raises(ValueError):
+        build_workflow("gemini-2.5-flash", "telegram")

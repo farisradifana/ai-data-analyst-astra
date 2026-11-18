@@ -16,6 +16,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 WORKFLOW_NAME = "ASTRA_DATA_ASSISTANT"
+TELEGRAM_WORKFLOW_NAME = "ASTRA_TELEGRAM_ASSISTANT"
+WEBHOOK_PATH = "astra-assistant"
+WEBHOOK_CREDENTIAL = "Astra assistant webhook token"
+WEBHOOK_HEADER = "X-Astra-Token"
 POSTGRES_CREDENTIAL = "Astra reporting (read-only)"
 GEMINI_CREDENTIAL = "Google Gemini(PaLM) Api account"
 MODEL_PLACEHOLDER = "SET_LLM_MODEL"
@@ -250,31 +254,62 @@ def tool_node(tool: Tool, x: int, y: int) -> dict:
     }
 
 
-def build_workflow(llm_model: str | None) -> dict:
-    trigger, agent, model, memory = "Chat", "Astra data assistant", "LLM chat model", "Chat memory"
+def build_workflow(llm_model: str | None, trigger_kind: str = "chat") -> dict:
+    """trigger_kind 'chat': n8n chat (editor only, not public). 'webhook': POST /webhook/astra-assistant
+    with header-token auth, used by the local Telegram bridge (doc 36). n8n listens on 127.0.0.1 only."""
+    if trigger_kind not in ("chat", "webhook"):
+        raise ValueError("trigger_kind must be 'chat' or 'webhook'")
+    webhook = trigger_kind == "webhook"
+    prefix = "tg:" if webhook else ""   # distinct node ids per workflow
+    trigger = "Webhook" if webhook else "Chat"
+    agent, model, memory, reply = "Astra data assistant", "LLM chat model", "Chat memory", "Reply"
+    if webhook:
+        trigger_node = {
+            "id": _id(prefix + trigger), "name": trigger, "type": "n8n-nodes-base.webhook", "typeVersion": 2.1,
+            "position": [0, 0], "webhookId": _id(prefix + "webhook-id"),
+            "parameters": {"httpMethod": "POST", "path": WEBHOOK_PATH, "authentication": "headerAuth",
+                           "responseMode": "responseNode", "options": {}},
+            "credentials": {"httpHeaderAuth": {"name": WEBHOOK_CREDENTIAL}}}
+        agent_params = {"promptType": "define", "text": "={{ $json.body.chatInput }}",
+                        "options": {"systemMessage": SYSTEM_MESSAGE, "maxIterations": 8}}
+        memory_params = {"sessionIdType": "customKey", "sessionKey": "={{ $json.body.sessionId }}",
+                         "contextWindowLength": 10}
+    else:
+        trigger_node = {"id": _id(trigger), "name": trigger, "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+                        "typeVersion": 1.4, "position": [0, 0], "parameters": {"public": False, "options": {}}}
+        agent_params = {"promptType": "auto", "options": {"systemMessage": SYSTEM_MESSAGE, "maxIterations": 8}}
+        memory_params = {"sessionIdType": "fromInput", "contextWindowLength": 10}
     nodes = [
-        {"id": _id(trigger), "name": trigger, "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-         "typeVersion": 1.4, "position": [0, 0], "parameters": {"public": False, "options": {}}},
-        {"id": _id(agent), "name": agent, "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 3.1,
-         "position": [300, 0],
-         "parameters": {"promptType": "auto", "options": {"systemMessage": SYSTEM_MESSAGE, "maxIterations": 8}}},
-        {"id": _id(model), "name": model, "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        trigger_node,
+        {"id": _id(prefix + agent), "name": agent, "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 3.1,
+         "position": [300, 0], "parameters": agent_params},
+        {"id": _id(prefix + model), "name": model, "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
          "typeVersion": 1.1, "position": [160, 260],
          "parameters": {"modelName": model_name(llm_model), "options": {"temperature": 0.1}},
          "credentials": {"googlePalmApi": {"name": GEMINI_CREDENTIAL}}},
-        {"id": _id(memory), "name": memory, "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-         "typeVersion": 1.3, "position": [320, 260],
-         "parameters": {"sessionIdType": "fromInput", "contextWindowLength": 10}},
+        {"id": _id(prefix + memory), "name": memory, "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+         "typeVersion": 1.3, "position": [320, 260], "parameters": memory_params},
     ]
-    nodes += [tool_node(t, 480 + 160 * i, 260) for i, t in enumerate(TOOLS)]
+    for i, t in enumerate(TOOLS):
+        node = tool_node(t, 480 + 160 * i, 260)
+        node["id"] = _id(prefix + t.name)
+        nodes.append(node)
     connections = {
         trigger: {"main": [[{"node": agent, "type": "main", "index": 0}]]},
         model: {"ai_languageModel": [[{"node": agent, "type": "ai_languageModel", "index": 0}]]},
         memory: {"ai_memory": [[{"node": agent, "type": "ai_memory", "index": 0}]]},
     }
+    if webhook:
+        nodes.append({"id": _id(prefix + reply), "name": reply, "type": "n8n-nodes-base.respondToWebhook",
+                      "typeVersion": 1.4, "position": [600, 0],
+                      "parameters": {"respondWith": "json",
+                                     "responseBody": "={{ JSON.stringify({ output: $json.output }) }}",
+                                     "options": {}}})
+        connections[agent] = {"main": [[{"node": reply, "type": "main", "index": 0}]]}
     for t in TOOLS:
         connections[t.name] = {"ai_tool": [[{"node": agent, "type": "ai_tool", "index": 0}]]}
-    return {"name": WORKFLOW_NAME, "nodes": nodes, "connections": connections, "active": False,
+    name = TELEGRAM_WORKFLOW_NAME if webhook else WORKFLOW_NAME
+    return {"name": name, "nodes": nodes, "connections": connections, "active": False,
             "settings": {"executionOrder": "v1"}, "pinData": {}}
 
 
@@ -283,7 +318,8 @@ def to_psycopg(sql: str) -> str:
     return re.sub(r"\$(\d+)", r"%(p\1)s", sql)
 
 
-def write_workflow(path: Path, llm_model: str | None) -> Path:
+def write_workflow(path: Path, llm_model: str | None, trigger_kind: str = "chat") -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(build_workflow(llm_model), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    wf = build_workflow(llm_model, trigger_kind)
+    path.write_text(json.dumps(wf, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path

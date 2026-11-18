@@ -114,6 +114,6 @@ The existing workflows (including "Customer service agent") are not changed.
 
 ## Not in this phase
 
-- **Telegram chat.** n8n's Telegram Trigger needs a public webhook URL, and this n8n runs on `127.0.0.1`.
-  That needs a tunnel or a hosted n8n, which means exposing a port. It needs your decision first.
+- **Telegram chat:** built in [doc 36](36-telegram-assistant.md). It uses a local bridge (outbound only) and a
+  webhook copy of this workflow on 127.0.0.1, so no public webhook is needed (user go-ahead 2026-11-18).
 - **Laya routing** (`ASTRA_LAYA_DECISION_ENGINE`, doc 26). Auto-routing stays off.

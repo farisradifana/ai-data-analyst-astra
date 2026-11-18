@@ -139,7 +139,9 @@ pooler, database `postgres`, user `astra_reporting.<project_ref>`, its password,
 log in for you. Do not share the data source with "Anyone with link" editing rights.
 
 Then build the report from [doc 34](34-looker-studio-dashboards.md):
-1. Add one data source per `v_*` view listed there (schema `dataset`).
+1. Add one data source per `v_*` view listed there. The table list after sign-in is empty, because Looker Studio
+   lists only the `public` schema. Choose **CUSTOM QUERY** instead of TABLE and enter
+   `SELECT * FROM dataset.<view>`, for example `SELECT * FROM dataset.v_sales_daily`.
 2. Build the 8 pages with the KPI formulas and filters from doc 34.
 3. Set the date range to 2025 and compare each scorecard with the "2025 reference" column.
    A different number means a filter or an aggregation is wrong.
@@ -179,6 +181,45 @@ User `astra_analyst.<project_ref>`, password from your `.env`. SSL tab → Use S
 `secrets\supabase-ca.crt`, verify server. Test Connection → you should see schema `dataset`.
 
 - [ ] H8 done
+
+## H9 — Telegram chat for the data assistant (doc 36) — ~15 min
+
+Go-ahead given 2026-11-18. Design: local bridge, outbound only, no public webhook ([doc 36](36-telegram-assistant.md)).
+The alert bot already sends its messages to another service's webhook. Leave that alone and create a new bot.
+
+1. In Telegram, open **@BotFather** → `/newbot` → choose a name and a username ending in `bot`. Copy the token
+   into `.env` as `TELEGRAM_ASSISTANT_BOT_TOKEN=`. Claude cannot create the bot or see the token.
+2. `TELEGRAM_ALLOWED_USER_IDS` is already set in `.env` (format checked). Keep only the user ids that may ask.
+3. Make a webhook token in PowerShell. It prints 64 random characters:
+   ```powershell
+   $b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); ($b | ForEach-Object { $_.ToString('x2') }) -join ''
+   ```
+   Put it in `.env` as `ASTRA_ASSISTANT_WEBHOOK_TOKEN=`.
+4. Start n8n with `.\astra n8n-start` and open http://astra.localhost:5698. Go to Credentials → New → **Header Auth**.
+   Name the credential `Astra assistant webhook token`. Header name `X-Astra-Token`, value = the same token. Save.
+5. Build, then import the workflow:
+   ```powershell
+   .\astra n8n build
+   ```
+   In n8n: Workflows → Import from file → `n8n\build\astra_telegram_assistant.json`. Open the Webhook node:
+   its credential must show `Astra assistant webhook token`. The Gemini and Postgres nodes use the same
+   credentials as `ASTRA_DATA_ASSISTANT`. Save, then **Activate** (Publish) the workflow.
+6. Check the settings (sends no message):
+   ```powershell
+   .\astra telegram-bot check --online
+   ```
+   You want `config OK` and `Telegram webhook not set`.
+7. Start the bridge and leave the window open. Ctrl+C stops it:
+   ```powershell
+   .\astra telegram-bot run
+   ```
+8. In a private chat with the new bot, ask `Berapa net revenue 2025?`. The expected answer is Rp 54.269.362.661.171.
+   Optional (spec case 16): from an account that is not on the list, you should get "Not authorized for this bot.".
+   For the group: add the new bot to the group and use `/ask <question>`.
+
+Tell Claude the result. The answer is enough; do not paste tokens or ids.
+
+- [ ] H9 done
 
 ## Open data decisions (reply with "accept defaults" or your choice)
 
