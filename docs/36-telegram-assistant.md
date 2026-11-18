@@ -77,7 +77,7 @@ webhook URL loopback checks, a webhook that is already set is left alone, backlo
 `tests/n8n/test_assistant.py` covers the webhook workflow: Header Auth, Respond node, the same tools, and no
 secrets.
 
-Not run live yet: the first real question through Telegram. That needs H9.
+Live check 2026-11-18 (H9): a question sent to the assistant bot was answered through the bridge.
 
 ## Troubleshooting
 
@@ -88,7 +88,8 @@ Not run live yet: the first real question through Telegram. That needs H9.
 | No reply when tagging the bot in the group, `/ask` works | Privacy mode is on, so Telegram does not deliver the mention | @BotFather → `/setprivacy` → Disable, then remove the bot from the group and add it again |
 | No reply at all in the group | Bridge not running, wrong `TELEGRAM_CHAT_ID`, or the new bot is not in the group | Check the bridge window; the group id must match; add the assistant bot (not only the alert bot) |
 | `HTTP 409 conflict` | Another program polls the same bot | Stop the other bridge, or use another bot |
-| Reply "not available", log `webhook HTTP 404` | Workflow not active, or wrong path | Activate `ASTRA_TELEGRAM_ASSISTANT` in n8n; use the production URL `/webhook/astra-assistant` |
+| Reply "not available", log `webhook HTTP 404` | Workflow not published (saving is not enough), or wrong path | Open `ASTRA_TELEGRAM_ASSISTANT` in n8n and click Publish (Active); use the production URL `/webhook/astra-assistant` |
+| `stopped: this bot has a Telegram webhook set` after setting up a tunnel | A webhook was set on the assistant bot itself | Not needed: the bridge reaches n8n on 127.0.0.1. Remove that webhook (only the one you set on this bot) |
 | Log `webhook HTTP 403` or `401` | Token mismatch | Same value in `.env` and in the n8n credential; header name `X-Astra-Token` |
 | Log `webhook unreachable (URLError)` | n8n not running | `.\astra n8n-start` |
 | Reply after about 1–3 minutes | Gemini is slow or rate-limited | See doc 35 (model choice). The bridge waits up to 180 s |

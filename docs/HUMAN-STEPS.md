@@ -222,7 +222,11 @@ The alert bot already sends its messages to another service's webhook. Leave tha
 
 Tell Claude the result. The answer is enough; do not paste tokens or ids.
 
-- [ ] H9 done
+- [x] H9 done (2026-11-18: question in Telegram answered through the bridge)
+
+Do not set a webhook on the assistant bot (for example with a Cloudflare tunnel). The bridge needs none and stops
+if one is set. If a question gets "not available" and the bridge logs `webhook HTTP 404`, the workflow is not
+published: open `ASTRA_TELEGRAM_ASSISTANT` in n8n and click Publish.
 
 ## Open data decisions (reply with "accept defaults" or your choice)
 
