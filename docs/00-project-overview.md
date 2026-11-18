@@ -52,7 +52,7 @@ Open:
 - Telegram chat front end for the assistant: needs a public webhook, so it needs a decision.
 - Laya: n8n workflow `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing and a held-out evaluation set are not built. Auto-routing is off.
 - Decision on the existing Supabase advisor warning about `public.rls_auto_enable()`.
-- Phase 2 skill tool installs (CodeGraph, Graphify), final testing and review (Phase 11), and the global skill (Phase 12).
+- Phase 2 skill tool installs (CodeGraph, Graphify).
 - Backup and restore: written in [doc 16](16-automation-runbook.md), but the `pg_dump` / restore commands are not tested
   (no PostgreSQL client on this PC).
 
@@ -118,3 +118,16 @@ From the project folder, in PowerShell or cmd. These commands are safe: neither 
 - The first prints the command list.
 - The second validates the source files without any database connection.
 - The third checks the assistant's SQL tools offline.
+
+## Global Claude Code skill
+
+The repo keeps a reusable skill, `skill/astra-enterprise-data-platform/` (SKILL.md and `references/`). It holds the
+platform's standards and procedures and no credentials. Claude Code loads it in any project once it is copied to the
+user skills folder. Install or update it from the repo root in PowerShell:
+
+```powershell
+Copy-Item -Recurse -Force skill\astra-enterprise-data-platform "$env:USERPROFILE\.claude\skills\"
+```
+
+Start a new Claude Code session afterwards: the skill list is read at session start. Check with
+`/astra-enterprise-data-platform`, or ask Claude whether the skill is listed.

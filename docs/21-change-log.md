@@ -7,6 +7,10 @@ Built from `git log` (date, short hash, subject). Newest first. Dates are commit
 
 ## 2026-11-18
 
+- Phase 12: global Claude Code skill `astra-enterprise-data-platform` (repo copy in `skill/`, installed to the user skills folder); STATUS phase table refreshed
+- `9b38885` Phase 11: spec test cases, live reconciliation, final report
+- `9bbd556` Docs: dated top-level raw files are intentionally not loaded (user decision)
+- `f69310d` Phase 10: docs 00-21, CLAUDE.md, requirements.txt
 - `e2cdb03` Docs: Phase 9 data assistant verified live in n8n (H4 done)
 - `7b0ea91` n8n-start: set N8N_SECURE_COOKIE=false for the loopback-only astra.localhost editor
 - `d32a282` n8n-start: open the Astra n8n as astra.localhost:5698
