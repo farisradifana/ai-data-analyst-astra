@@ -64,6 +64,8 @@ As implemented in `discover()` in `src/astra_etl/transform.py`, for each table t
 
 Example: `raw-data/sales_transactions/2026-11-19.csv`. A date in the name keeps the files in order.
 No other name pattern is matched. A file such as `raw-data/<table>_20261119.csv` placed directly in `raw-data/` is not read.
+The `_20261119` and `_20261120` files now in `raw-data/` are kept there on purpose and are not loads
+(decision 2026-11-18). To load a daily file, move it into `raw-data/<table>/`.
 (On 2026-11-18, `raw-data/` held 30 top-level files, 3 per table, including names of that form, and no sub-folders.
 Their contents were not inspected for this page.)
 
