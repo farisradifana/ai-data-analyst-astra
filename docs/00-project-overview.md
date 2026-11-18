@@ -52,9 +52,8 @@ Open:
 - A live Telegram alert from a real scheduled load, and confirmation of the first scheduled run.
 - Updating already-loaded master data (a changed price is quarantined as a duplicate key). Not implemented. Archive retention is also open.
 - Telegram chat for the assistant: built (doc 36, no public webhook); the first live question waits for H9.
-- Laya: n8n workflow `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing and a held-out evaluation set are not built. Auto-routing is off.
+- Laya: the n8n gateway `ASTRA_LAYA_DECISION_ENGINE` and the Telegram route hint are live (H10); a held-out evaluation set is not built. Auto-routing is off.
 - Decision on the existing Supabase advisor warning about `public.rls_auto_enable()`.
-- Phase 2 skill tool installs (CodeGraph, Graphify).
 - Backup and restore: written in [doc 16](16-automation-runbook.md), but the `pg_dump` / restore commands are not tested
   (no PostgreSQL client on this PC).
 

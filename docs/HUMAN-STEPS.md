@@ -49,7 +49,8 @@ Claude will review README, LICENSE and install scripts of `farisradifana/codegra
 `farisradifana/graphify` first and report findings. Then you reply "approve installs" or
 reject specific ones. Also approve the Python packages: `psycopg[binary]`, `pandera`, `pytest`.
 
-- [ ] H2 done
+- [x] H2 done (2026-11-18): CodeGraph and Graphify **rejected** by the user, not installed. Python packages
+  come from `requirements.txt` and `requirements-laya.txt`.
 
 ## H3 — Telegram bot credentials (blocks Phase 7, 9B) — ~10 min
 
@@ -262,7 +263,9 @@ Requested 2026-11-18. `LAYA_API_TOKEN` is already set in `.env` (checked: presen
 
 Tell Claude the result. Claude can then test the gateway directly without printing any token.
 
-- [ ] H10 done
+- [x] H10 done (2026-11-18): steps 1–5 done by the user; the Laya API runs under the background supervisor.
+  Checked 2026-11-18: Laya `/health` 200 on 127.0.0.1:8765; gateway `/webhook/astra-laya` is published
+  (403 without the token). The full answer check with the token (step 6) was skipped by the user's decision.
 
 ## Open data decisions (reply with "accept defaults" or your choice)
 
