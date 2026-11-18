@@ -256,14 +256,48 @@ def test_too_long_question_and_rate_limit():
     assert len(asked) == b.RATE_MAX
 
 
-def test_assistant_failure_gives_a_generic_reply():
+def test_assistant_failure_without_a_reason_gives_the_generic_reply():
     def broken(q, s):
-        raise b.AskError("webhook HTTP 500")
+        raise b.AskError("webhook HTTP 418")
     logs = []
     br, _ = make(ask=broken, logs=logs)
     assert br.handle(msg("Berapa?")) == "failed"
     assert br.tg.sent()[-1]["text"] == b.UNAVAILABLE
-    assert any("HTTP 500" in line for line in logs)
+    assert any("HTTP 418" in line for line in logs)
+
+
+def test_assistant_failure_tells_the_reason():
+    def busy(q, s):
+        raise b.AskError("workflow error (llm_busy)", "llm_busy")
+    logs = []
+    br, _ = make(ask=busy, logs=logs)
+    assert br.handle(msg("Berapa?")) == "failed"
+    text = br.tg.sent()[-1]["text"]
+    assert text == b.FAILURE_REASONS["llm_busy"] and "503" in text and "overloaded" in text
+    assert any("reason llm_busy" in line for line in logs)
+
+
+def test_unknown_reason_key_falls_back_to_the_generic_reply():
+    assert b.AskError("x", "made-up").reason == "unknown"
+
+
+GEMINI_503 = ("Service unavailable - try again later | [GoogleGenerativeAI Error]: Error fetching from "
+              "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent: "
+              "[503 Service Unavailable] This model is currently experiencing high demand.")
+
+
+@pytest.mark.parametrize("text, reason", [
+    (GEMINI_503, "llm_busy"),
+    ("[429 Too Many Requests] Resource has been exhausted (e.g. check quota).", "llm_quota"),
+    ("[400 Bad Request] API key not valid. Please pass a valid API key.", "llm_auth"),
+    ("TypeError: fetch failed", "llm_network"),
+    ("Agent stopped due to max iterations.", "too_many_steps"),
+    ("Connection terminated unexpectedly (postgres)", "db"),
+    ("Cannot read properties of undefined", "workflow_error"),
+    ("", "workflow_error"),
+])
+def test_classify_error(text, reason):
+    assert b.classify_error(text) == reason
 
 
 def test_reply_failure_does_not_raise():
@@ -339,13 +373,20 @@ def test_asker_posts_question_with_header_token():
     assert seen["headers"] == {b.WEBHOOK_HEADER: WTOKEN} and seen["timeout"] >= 120
 
 
-@pytest.mark.parametrize("result, text", [
-    ((401, b""), "HTTP 401"),
-    ((200, b"<html>"), "not JSON"),
-    ((200, b'{"output": ""}'), "empty"),
-    (urllib.error.URLError("refused"), "unreachable"),
+@pytest.mark.parametrize("result, text, reason", [
+    ((401, b""), "HTTP 401", "token"),
+    ((403, b""), "HTTP 403", "token"),
+    ((404, b""), "HTTP 404", "not_published"),
+    ((500, b""), "HTTP 500", "workflow_error"),
+    ((200, b"<html>"), "not JSON", "bad_answer"),
+    ((200, b""), "not JSON", "bad_answer"),
+    ((200, b'{"output": ""}'), "empty", "bad_answer"),
+    ((200, json.dumps({"error": GEMINI_503}).encode()), "workflow error", "llm_busy"),
+    (urllib.error.URLError(ConnectionRefusedError(10061, "refused")), "unreachable", "n8n_down"),
+    (urllib.error.URLError(TimeoutError("timed out")), "unreachable", "timeout"),
+    (TimeoutError("timed out"), "unreachable", "timeout"),
 ])
-def test_asker_errors_hold_no_secrets(result, text):
+def test_asker_errors_hold_no_secrets_and_name_a_reason(result, text, reason):
     def post(url, body, headers, timeout):
         if isinstance(result, Exception):
             raise result
@@ -353,6 +394,13 @@ def test_asker_errors_hold_no_secrets(result, text):
     with pytest.raises(b.AskError, match=text) as e:
         b.make_asker(b.config_from_env(env()), post=post)("q", "s")
     assert WTOKEN not in str(e.value)
+    assert e.value.reason == reason
+    assert "googleapis" not in str(e.value)   # raw error text stays out of the log line
+
+
+def test_every_reason_has_a_short_reply_without_internals():
+    for text in b.FAILURE_REASONS.values():
+        assert 20 < len(text) < 300 and "http" not in text.lower()
 
 
 @pytest.mark.parametrize("raw, want", [

@@ -306,6 +306,12 @@ def _route_nodes(prefix: str) -> list[dict]:
     ]
 
 
+ERROR_REPLY_NODE = "Reply error"
+# Error text of the failed agent, at most 500 characters: message + description (Gemini puts the HTTP status there).
+ERROR_REPLY_BODY = ("={{ JSON.stringify({ error: ([$json.error?.message, $json.error?.description]"
+                    ".filter(Boolean).join(' | ') || String($json.error || 'unknown error')).slice(0, 500) }) }}")
+
+
 def build_workflow(llm_model: str | None, trigger_kind: str = "chat") -> dict:
     """trigger_kind 'chat': n8n chat (editor only, not public). 'webhook': POST /webhook/astra-assistant
     with header-token auth, used by the local Telegram bridge (doc 36); it asks the Laya gateway workflow
@@ -364,7 +370,15 @@ def build_workflow(llm_model: str | None, trigger_kind: str = "chat") -> dict:
                                      "responseBody": "={{ JSON.stringify({ output: $json.output, "
                                                      f"route: $('{QUESTION_NODE}').item.json.route }}) }}}}",
                                      "options": {}}})
-        connections[agent] = {"main": [[{"node": reply, "type": "main", "index": 0}]]}
+        # A failing agent (Gemini 503/429, network, a tool error) goes to the error output, so the bridge gets
+        # the error text and can tell the user why (doc 36). The bridge maps it to a fixed reason; the raw
+        # text is never sent to Telegram.
+        nodes[1]["onError"] = "continueErrorOutput"
+        nodes.append({"id": _id(prefix + ERROR_REPLY_NODE), "name": ERROR_REPLY_NODE,
+                      "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.4, "position": [920, 200],
+                      "parameters": {"respondWith": "json", "responseBody": ERROR_REPLY_BODY, "options": {}}})
+        connections[agent] = {"main": [[{"node": reply, "type": "main", "index": 0}],
+                                       [{"node": ERROR_REPLY_NODE, "type": "main", "index": 0}]]}
     for t in TOOLS:
         connections[t.name] = {"ai_tool": [[{"node": agent, "type": "ai_tool", "index": 0}]]}
     name = TELEGRAM_WORKFLOW_NAME if webhook else WORKFLOW_NAME

@@ -135,6 +135,13 @@ def test_webhook_workflow_uses_header_auth_and_replies_through_a_response_node()
     assert nodes["Chat memory"]["parameters"]["sessionKey"] == "={{ $json.sessionId }}"
     assert wf["connections"]["Astra data assistant"]["main"][0][0]["node"] == "Reply"
     assert nodes["Reply"]["type"] == "n8n-nodes-base.respondToWebhook"
+    # a failing agent answers through "Reply error" with the error text, so the bridge can name the reason
+    assert nodes["Astra data assistant"]["onError"] == "continueErrorOutput"
+    assert wf["connections"]["Astra data assistant"]["main"][1][0]["node"] == "Reply error"
+    err = nodes["Reply error"]
+    assert err["type"] == "n8n-nodes-base.respondToWebhook" and err["parameters"]["respondWith"] == "json"
+    assert "error:" in err["parameters"]["responseBody"] and ".slice(0, 500)" in err["parameters"]["responseBody"]
+    assert "onError" not in build_workflow("gemini-2.5-flash")["nodes"][1]   # n8n chat variant unchanged
     for t in TOOLS:   # same fixed tools, same read-only credential
         assert nodes[t.name]["parameters"]["query"] == t.sql
         assert nodes[t.name]["credentials"] == {"postgres": {"name": POSTGRES_CREDENTIAL}}

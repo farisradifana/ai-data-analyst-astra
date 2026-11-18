@@ -42,7 +42,7 @@ flowchart LR
 | Backlog | Messages sent before the bridge started are skipped |
 | Webhook URL | Must be http(s) on a loopback IP (`127.0.0.1` or `[::1]`; names such as `localhost` are refused because they depend on the resolver), without credentials or query. No proxy, no redirects |
 | Webhook token | Header `X-Astra-Token`, 32+ characters, the same value in `.env` and in the n8n Header Auth credential |
-| Errors | The user gets a generic "not available" reply. The log gets the HTTP status or error class only |
+| Errors | The user gets the reason in a fixed sentence (table "Failure replies" below), never the raw error text. The log gets the HTTP status or error class and the reason key |
 | Logs | User ids, chat type, lengths and timings. Never the question, the answer or a token |
 | Running time | `--minutes` (default 480, max 1440). 20 polling errors in a row (network, malformed reply) stop it (exit 1). An HTTP 409 conflict (another program reads the bot) stops it (exit 3). No bot username from Telegram: it does not start |
 | Refusal log | At most one log line and one reply per refused user per minute; the refusal table is capped at 1000 users |
@@ -105,6 +105,32 @@ Answers are plain text. Rule 9 of the system message forbids Markdown (`*`, `#`,
 `- `). The bridge also strips any Markdown the model still writes (`plain_text` in `bridge.py`): heading `#`,
 `*`/`+` bullets, `**`, `__`, `*` and backticks. Asking the bot to "remember" a format rule in chat lasts only
 for the last 10 messages of that session (window memory), so format rules belong in the system message.
+
+## Failure replies
+
+When the agent fails inside n8n (for example Gemini returns 503), the agent's error output goes to the node
+`Reply error`, which returns `{"error": "<text, max 500 chars>"}`. The bridge maps that text, or the HTTP
+status, to one fixed reply (`FAILURE_REASONS` in `bridge.py`). The log line ends with `[reason <key>]`.
+
+| Reason key | Cause | What the user reads (short) |
+|---|---|---|
+| `llm_busy` | Gemini 503 / high demand | AI model overloaded, try again in a minute or two |
+| `llm_quota` | Gemini 429 / quota | Quota or rate limit used up, wait a few minutes |
+| `llm_auth` | API key rejected | Check the Gemini credential in n8n |
+| `llm_network` | `fetch failed`, DNS, reset | n8n cannot reach Google, check the internet |
+| `db` | Postgres error in a tool | Database query failed, run `.\astra check-db` |
+| `too_many_steps` | Agent hit max iterations | Ask a simpler question |
+| `workflow_error` | Other n8n error, HTTP 5xx | See n8n, Executions |
+| `n8n_down` | Connection refused | n8n not running, `.\astra background start` |
+| `timeout` | No answer in 180 s | Model slow or unreachable, try later |
+| `not_published` | HTTP 404 | Publish `ASTRA_TELEGRAM_ASSISTANT` |
+| `token` | HTTP 401/403 | Token mismatch between `.env` and n8n |
+| `bad_answer` | Empty or non-JSON answer | Usually the model failed, try again |
+| `unknown` | Anything else | Generic "not available" |
+
+The `Reply error` node exists only after `.\astra n8n build` and a re-import of
+`n8n\build\astra_telegram_assistant.json` (done 2026-11-18 or later). With an older import, an agent failure still
+gives `bad_answer`.
 
 ## Troubleshooting
 

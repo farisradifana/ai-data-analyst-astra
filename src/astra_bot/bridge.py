@@ -16,6 +16,8 @@ Rules:
   (getUpdates would conflict). It never calls deleteWebhook.
 - Messages sent before the bridge started are skipped.
 - Logs hold user ids, chat types, lengths and error classes, never the question, the answer or a token.
+- A failed question gets a fixed reason (FAILURE_REASONS: model overloaded, quota, n8n down, ...), never the
+  raw error text.
 """
 from __future__ import annotations
 
@@ -24,6 +26,7 @@ import http.client
 import ipaddress
 import json
 import re
+import socket
 import time
 import urllib.error
 import urllib.parse
@@ -58,7 +61,54 @@ class BridgeConfigError(ValueError):
 
 
 class AskError(RuntimeError):
-    """The n8n webhook did not answer. The message holds only a status or an error class."""
+    """The n8n webhook did not answer. The message holds only a status or an error class.
+    `reason` is a key of FAILURE_REASONS: the user is told that fixed text, never raw error text."""
+
+    def __init__(self, message: str, reason: str = "unknown"):
+        super().__init__(message)
+        self.reason = reason if reason in FAILURE_REASONS else "unknown"
+
+
+_FAIL = "The data assistant could not answer: "
+FAILURE_REASONS = {
+    "llm_busy": _FAIL + "the AI model (Gemini) is overloaded right now (Google 503, high demand). "
+                "This is usually temporary. Try again in a minute or two.",
+    "llm_quota": _FAIL + "the AI model's quota or rate limit is used up (Google 429). "
+                 "Wait a few minutes, or check the Gemini API quota.",
+    "llm_auth": _FAIL + "the AI model rejected the API key. Check the Gemini credential in n8n.",
+    "llm_network": _FAIL + "n8n could not reach the AI model (network problem to Google). "
+                   "Check the internet connection and try again.",
+    "db": _FAIL + "the database query failed (Supabase not reachable or the query failed). "
+          "Try again; if it keeps failing, run .\\astra check-db on the PC.",
+    "too_many_steps": _FAIL + "the question needed too many steps. Ask a simpler or more specific question.",
+    "workflow_error": _FAIL + "the n8n workflow hit an error. See n8n, Executions, for details.",
+    "n8n_down": _FAIL + "n8n is not running on the PC. Start it with .\\astra background start.",
+    "timeout": _FAIL + "no answer within 3 minutes. The AI model is slow or unreachable. Try again later.",
+    "not_published": _FAIL + "the workflow ASTRA_TELEGRAM_ASSISTANT is not published in n8n.",
+    "token": _FAIL + "the bridge token does not match the n8n credential (ASTRA_ASSISTANT_WEBHOOK_TOKEN).",
+    "bad_answer": _FAIL + "the answer came back empty or broken, usually because the AI model failed. "
+                  "Try again.",
+    "unknown": UNAVAILABLE,
+}
+
+# Order matters: the first match wins. Patterns run on the n8n error text, which is never sent to Telegram.
+_ERROR_PATTERNS = [
+    ("llm_quota", re.compile(r"\b429\b|quota|rate.?limit|resource.?exhausted|too many requests", re.I)),
+    ("llm_busy", re.compile(r"\b503\b|overloaded|high demand|service unavailable", re.I)),
+    ("llm_auth", re.compile(r"api.?key|\b401\b|\b403\b|permission.?denied|unauthori[sz]ed", re.I)),
+    ("too_many_steps", re.compile(r"max(imum)? ?iterations", re.I)),
+    ("db", re.compile(r"postgres|database|relation |sql|connection terminated|ssl", re.I)),
+    ("llm_network", re.compile(r"fetch failed|ENOTFOUND|ECONNRESET|ECONNREFUSED|ETIMEDOUT|socket|network|"
+                               r"timed? ?out", re.I)),
+]
+
+
+def classify_error(text: str) -> str:
+    """Map an n8n error text to a FAILURE_REASONS key."""
+    for reason, pattern in _ERROR_PATTERNS:
+        if pattern.search(text or ""):
+            return reason
+    return "workflow_error"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -151,16 +201,28 @@ def make_asker(cfg: BridgeConfig, post: Callable = _http_post_json, timeout: flo
         try:
             status, raw = post(cfg.webhook_url, {"chatInput": question, "sessionId": session_id},
                                {WEBHOOK_HEADER: cfg.webhook_token}, timeout)
-        except (urllib.error.URLError, TimeoutError, OSError) as e:
-            raise AskError(f"webhook unreachable ({type(e).__name__})") from None
+        except (TimeoutError, socket.timeout) as e:
+            raise AskError(f"webhook unreachable ({type(e).__name__})", "timeout") from None
+        except urllib.error.URLError as e:
+            timed_out = isinstance(e.reason, (TimeoutError, socket.timeout))
+            raise AskError(f"webhook unreachable ({type(e).__name__})",
+                           "timeout" if timed_out else "n8n_down") from None
+        except OSError as e:
+            raise AskError(f"webhook unreachable ({type(e).__name__})", "n8n_down") from None
         if status != 200:
-            raise AskError(f"webhook HTTP {status}")
+            reason = {404: "not_published", 401: "token", 403: "token"}.get(
+                status, "workflow_error" if status >= 500 else "unknown")
+            raise AskError(f"webhook HTTP {status}", reason)
         try:
-            out = json.loads(raw.decode("utf-8")).get("output")
+            body = json.loads(raw.decode("utf-8"))
+            out, err = body.get("output"), body.get("error")
         except (ValueError, AttributeError):
-            raise AskError("webhook answer is not JSON with an 'output' field") from None
+            raise AskError("webhook answer is not JSON with an 'output' field", "bad_answer") from None
+        if isinstance(err, str) and err.strip() and not (isinstance(out, str) and out.strip()):
+            reason = classify_error(err)
+            raise AskError(f"workflow error ({reason})", reason)
         if not isinstance(out, str) or not plain_text(out):
-            raise AskError("webhook answer is empty")
+            raise AskError("webhook answer is empty", "bad_answer")
         return plain_text(out)
     return ask
 
@@ -298,8 +360,8 @@ class Bridge:
             answer = self.ask(question, session)
         except AskError as e:
             self.stats["failed"] += 1
-            self.log(f"ask failed for user {uid}: {e}")
-            self._reply(msg, UNAVAILABLE)
+            self.log(f"ask failed for user {uid}: {e} [reason {e.reason}]")
+            self._reply(msg, FAILURE_REASONS[e.reason])
             return "failed"
         self.stats["answered"] += 1
         self.log(f"answered user {uid} ({ctype}): question {len(question)} chars, "
