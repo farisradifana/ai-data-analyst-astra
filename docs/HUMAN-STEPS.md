@@ -215,7 +215,10 @@ The alert bot already sends its messages to another service's webhook. Leave tha
    ```
 8. In a private chat with the new bot, ask `Berapa net revenue 2025?`. The expected answer is Rp 54.269.362.661.171.
    Optional (spec case 16): from an account that is not on the list, you should get "Not authorized for this bot.".
-   For the group: add the new bot to the group and use `/ask <question>`.
+   For the group: add the new bot to the group and use `/ask <question>`. To ask by tagging the bot
+   (`@yourbot Berapa net revenue 2025?`) or by replying to its answer, also turn privacy mode off:
+   @BotFather → `/setprivacy` → choose the new bot → **Disable**. Then remove the bot from the group and add it
+   again: Telegram applies the privacy change to a group only when the bot rejoins it.
 
 Tell Claude the result. The answer is enough; do not paste tokens or ids.
 

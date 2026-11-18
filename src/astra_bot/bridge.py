@@ -8,7 +8,9 @@ read-only tools of the n8n workflow (aggregates only, no personal data).
 Rules:
 - Default deny: an empty or malformed allow-list means the bridge does not start.
 - Private chat with the bot: any text is a question. In the configured group (TELEGRAM_CHAT_ID):
-  only "/ask <question>". Other chats are ignored.
+  "/ask <question>", a message that mentions @<bot>, or a reply to one of the bot's messages
+  (mentions and replies need privacy mode off in @BotFather). Other group messages are dropped
+  without a log line. Other chats are ignored.
 - The webhook URL must be on a loopback host. The webhook token goes in a request header only.
 - If the bot already has a Telegram webhook set somewhere else, the bridge stops and leaves it alone
   (getUpdates would conflict). It never calls deleteWebhook.
@@ -43,7 +45,8 @@ MAX_TRACKED_USERS = 1000                 # cap on the refusal-time table
 HELP = ("Astra data assistant (SYNTHETIC data, read-only).\n"
         "Ask about sales, service, procurement, inventory, expenses, attendance or data quality, "
         "for example: Berapa net revenue 2025?\n"
-        "In the group, start with /ask. The assistant cannot change data and has no personal data.")
+        "In the group, start with /ask, mention the bot, or reply to one of its answers. "
+        "The assistant cannot change data and has no personal data.")
 NOT_ALLOWED = "Not authorized for this bot."
 UNAVAILABLE = "The data assistant is not available right now. Try again later."
 TOO_LONG = f"Question too long (max {MAX_QUESTION} characters)."
@@ -204,7 +207,32 @@ class Bridge:
                 return rest
             if cmd == "help":
                 return ""
+            if cmd is not None:
+                return None                               # other commands are not for the bridge
+            if self._mentions_bot(text):                  # "@bot question" anywhere in the message
+                return self._strip_mention(text)
+            if self._replies_to_bot(msg):                 # a reply to one of the bot's answers
+                return text
         return None
+
+    def _mention_re(self) -> re.Pattern | None:
+        if not self.bot_username:
+            return None
+        return re.compile(r"(?<![\w@])@" + re.escape(self.bot_username) + r"(?!\w)", re.I)
+
+    def _mentions_bot(self, text: str) -> bool:
+        rx = self._mention_re()
+        return bool(rx and rx.search(text))
+
+    def _strip_mention(self, text: str) -> str:
+        rx = self._mention_re()
+        cleaned = rx.sub(" ", text) if rx else text
+        return re.sub(r"\s+", " ", cleaned).strip(" ,:;-")
+
+    def _replies_to_bot(self, msg: dict) -> bool:
+        author = (msg.get("reply_to_message") or {}).get("from") or {}
+        return bool(self.bot_username and author.get("is_bot")
+                    and (author.get("username") or "").lower() == self.bot_username)
 
     def _rate_ok(self, uid: int) -> bool:
         now, q = self.clock(), self._asked[uid]

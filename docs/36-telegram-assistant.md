@@ -36,7 +36,8 @@ flowchart LR
 |---|---|
 | Allow-list | Only user ids in `TELEGRAM_ALLOWED_USER_IDS` are answered. Empty or malformed list: the bridge does not start (default deny) |
 | Unauthorized user (spec case 16) | Reply "Not authorized for this bot." (at most once a minute per user). The assistant is not called. The console log shows the user id, so the owner can add it |
-| Where | Private chat with the bot: any text is a question. The group in `TELEGRAM_CHAT_ID`: only `/ask <question>`. Other chats are ignored |
+| Where | Private chat with the bot: any text is a question. The group in `TELEGRAM_CHAT_ID` (topics too, the answer goes to the same topic): `/ask <question>`, a message that mentions `@<bot username>`, or a reply to one of the bot's answers (follow-up question). Other group messages are dropped without a log line. Other chats are ignored |
+| Privacy mode | `/ask` works with Telegram's default privacy mode. Mentions and replies need privacy mode **off** (@BotFather → `/setprivacy` → Disable): Telegram then delivers every group message to the bot; the bridge keeps only those meant for it and logs none of the others |
 | Limits | Max 1000 characters per question; max 6 questions per user per 5 minutes |
 | Backlog | Messages sent before the bridge started are skipped |
 | Webhook URL | Must be http(s) on a loopback IP (`127.0.0.1` or `[::1]`; names such as `localhost` are refused because they depend on the resolver), without credentials or query. No proxy, no redirects |
@@ -84,6 +85,8 @@ Not run live yet: the first real question through Telegram. That needs H9.
 |---|---|---|
 | `config error: ... TELEGRAM_ALLOWED_USER_IDS is empty` | No allow-list | Add your numeric user id. Run the bridge, message the bot, and read the id from the "refused" log line |
 | `stopped: this bot has a Telegram webhook set` | The bot's messages go to another service | Use a dedicated bot (`TELEGRAM_ASSISTANT_BOT_TOKEN`). Do not remove the other service's webhook |
+| No reply when tagging the bot in the group, `/ask` works | Privacy mode is on, so Telegram does not deliver the mention | @BotFather → `/setprivacy` → Disable, then remove the bot from the group and add it again |
+| No reply at all in the group | Bridge not running, wrong `TELEGRAM_CHAT_ID`, or the new bot is not in the group | Check the bridge window; the group id must match; add the assistant bot (not only the alert bot) |
 | `HTTP 409 conflict` | Another program polls the same bot | Stop the other bridge, or use another bot |
 | Reply "not available", log `webhook HTTP 404` | Workflow not active, or wrong path | Activate `ASTRA_TELEGRAM_ASSISTANT` in n8n; use the production URL `/webhook/astra-assistant` |
 | Log `webhook HTTP 403` or `401` | Token mismatch | Same value in `.env` and in the n8n credential; header name `X-Astra-Token` |

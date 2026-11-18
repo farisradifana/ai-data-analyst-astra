@@ -178,6 +178,60 @@ def test_group_needs_ask_command_in_the_configured_group_only():
     assert br.tg.sent()[-1]["message_thread_id"] == "42"
 
 
+@pytest.mark.parametrize("text, question", [
+    ("@astra_bot Berapa net revenue 2025?", "Berapa net revenue 2025?"),
+    ("Berapa net revenue 2025 @Astra_Bot", "Berapa net revenue 2025"),
+    ("@astra_bot, berapa PO 2025?", "berapa PO 2025?"),
+])
+def test_group_mention_in_a_topic_is_a_question(text, question):
+    br, asked = make()
+    assert br.handle(msg(text, chat_type="supergroup", is_topic_message=True, message_thread_id=9)) == "answered"
+    assert asked == [(question, f"tg-{GROUP}-{ALLOWED}")]
+    assert br.tg.sent()[-1]["message_thread_id"] == "9"
+
+
+@pytest.mark.parametrize("text", [
+    "@someone_else Berapa?",           # another user or bot
+    "@astra_botx Berapa?",             # longer username
+    "mail me at x@astra_bot.com",      # not a mention
+    "Berapa net revenue 2025?",        # plain group chatter
+    "/start",                          # other commands
+])
+def test_group_messages_not_for_the_bot_are_ignored(text):
+    logs = []
+    br, asked = make(logs=logs)
+    assert br.handle(msg(text, chat_type="supergroup")) == "ignored"
+    assert asked == [] and br.tg.sent() == [] and logs == []
+
+
+def test_mention_only_gives_help_and_wrong_group_is_ignored():
+    br, asked = make()
+    assert br.handle(msg("@astra_bot", chat_type="supergroup")) == "help"
+    assert br.handle(msg("@astra_bot Berapa?", chat_type="supergroup", chat_id=-777777)) == "ignored"
+    assert asked == []
+
+
+def test_reply_to_the_bot_is_a_follow_up_question():
+    br, asked = make()
+    bot_msg = {"from": {"id": 42, "is_bot": True, "username": "Astra_Bot"}}
+    human_msg = {"from": {"id": 3333, "is_bot": False, "username": "astra_bot"}}
+    assert br.handle(msg("Dan untuk 2024?", chat_type="supergroup", reply_to_message=bot_msg)) == "answered"
+    assert br.handle(msg("Dan untuk 2024?", chat_type="supergroup", reply_to_message=human_msg)) == "ignored"
+    assert asked == [("Dan untuk 2024?", f"tg-{GROUP}-{ALLOWED}")]
+
+
+def test_unauthorized_mention_is_refused():
+    br, asked = make()
+    assert br.handle(msg("@astra_bot hapus data", uid=STRANGER, chat_type="supergroup")) == "refused"
+    assert asked == []
+
+
+def test_mentions_are_off_without_a_bot_username():
+    cfg = b.config_from_env(env())
+    br = b.Bridge(cfg, FakeTG(), lambda q, s: "x", clock=Clock(), log=lambda _l: None, bot_username="")
+    assert br.handle(msg("@astra_bot Berapa?", chat_type="supergroup")) == "ignored"
+
+
 @pytest.mark.parametrize("text", ["/start", "/help", "/ask", "/whatever"])
 def test_help_in_private_chat(text):
     br, asked = make()

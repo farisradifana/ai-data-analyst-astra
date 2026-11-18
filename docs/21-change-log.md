@@ -7,6 +7,7 @@ Built from `git log` (date, short hash, subject). Newest first. Dates are commit
 
 ## 2026-11-18
 
+- Telegram bridge: answer @mentions and replies to the bot in the group (topics too); privacy-mode note (doc 36, H9)
 - Telegram chat for the data assistant: local bridge `.\astra telegram-bot` (doc 36) and webhook workflow `ASTRA_TELEGRAM_ASSISTANT`; Looker Studio CUSTOM QUERY note (doc 34, H5); spec cases 16 and 17 recorded
 - `3a52dc3` Phase 12: global Claude Code skill astra-enterprise-data-platform
 - Phase 12: global Claude Code skill `astra-enterprise-data-platform` (repo copy in `skill/`, installed to the user skills folder); STATUS phase table refreshed
