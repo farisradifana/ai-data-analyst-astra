@@ -228,6 +228,42 @@ Do not set a webhook on the assistant bot (for example with a Cloudflare tunnel)
 if one is set. If a question gets "not available" and the bridge logs `webhook HTTP 404`, the workflow is not
 published: open `ASTRA_TELEGRAM_ASSISTANT` in n8n and click Publish.
 
+## H10 — Laya route hint in n8n and Telegram (doc 37) — ~15 min
+
+Requested 2026-11-18. `LAYA_API_TOKEN` is already set in `.env` (checked: present, long enough).
+
+1. Start the Laya API in its own window and leave it open. Wait for the line `laya api ready` (about 30 s):
+   ```powershell
+   .\astra laya-api
+   ```
+2. In n8n (http://astra.localhost:5698): Credentials → New → **Header Auth**. Name the credential
+   `Laya API token`. Header name `Authorization`. Value: the word `Bearer`, one space, then the value of
+   `LAYA_API_TOKEN` from `.env`. Save.
+3. The gateway has its own token. Make one with the H9 step 3 command, put it in `.env` as
+   `ASTRA_LAYA_GATEWAY_TOKEN=`, then in n8n: Credentials → New → **Header Auth**, credential name
+   `Astra Laya gateway token`, header name `X-Astra-Token`, value = that token. Save.
+4. Build the workflows:
+   ```powershell
+   .\astra n8n build
+   ```
+   Import `n8n\build\astra_laya_decision_engine.json`. The Webhook node uses `Astra Laya gateway token`,
+   the `Laya predict` node uses `Laya API token`. Save, then **Publish**.
+5. Replace the Telegram workflow. n8n allows only one published workflow per webhook path, so:
+   open the current `ASTRA_TELEGRAM_ASSISTANT` → Unpublish → ⋮ → Archive. Then import
+   `n8n\build\astra_telegram_assistant.json`. Check the credentials: Webhook uses
+   `Astra assistant webhook token`, `Route hint (Laya)` uses `Astra Laya gateway token`, the model uses Gemini,
+   the tools use `Astra reporting (read-only)`.
+   Save, then **Publish**.
+6. Keep the bridge running (`.\astra telegram-bot run`) and ask the bot `Berapa net revenue 2025?`.
+   The answer is still Rp 54.269.362.661.171. In n8n → Executions, the Telegram execution shows the
+   `Route hint (Laya)` result.
+7. Optional: stop the Laya API (Ctrl+C) and ask again. The bot must still answer (hint `UNAVAILABLE`).
+   Tell Claude whether Ctrl+C stopped the API cleanly: that is an open check in doc 26.
+
+Tell Claude the result. Claude can then test the gateway directly without printing any token.
+
+- [ ] H10 done
+
 ## Open data decisions (reply with "accept defaults" or your choice)
 
 | ID | Question | Proposed default |

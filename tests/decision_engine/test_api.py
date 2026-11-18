@@ -105,3 +105,27 @@ def test_model_load_failure_reports_error_and_503():
                                      ("0.0.0.0", False), ("192.168.1.5", False)])
 def test_loopback_check(host, ok):
     assert _is_loopback(host) is ok
+
+
+def test_load_laya_env_copies_only_unset_laya_keys(tmp_path):
+    from decision_engine.api import load_laya_env
+
+    f = tmp_path / ".env"
+    f.write_text('DATABASE_PASSWORD=x\nLAYA_API_TOKEN="abcdefghijklmnopqrstuvwxyz"\n# LAYA_API_PORT=1\n'
+                 "LAYA_API_PORT=9999\nLAYA_THREADS=\n", encoding="utf-8")
+    env = {"LAYA_API_PORT": "8765"}
+    assert load_laya_env(f, env) == ["LAYA_API_TOKEN"]
+    assert env == {"LAYA_API_PORT": "8765", "LAYA_API_TOKEN": "abcdefghijklmnopqrstuvwxyz"}
+    assert load_laya_env(tmp_path / "missing", env) == []
+
+
+def test_load_laya_env_never_takes_remote_bind_and_drops_inline_comments(tmp_path):
+    from decision_engine.api import load_laya_env
+
+    f = tmp_path / ".env"
+    f.write_text("LAYA_API_ALLOW_REMOTE=1\nLAYA_API_HOST=0.0.0.0 # all\nLAYA_X=1\n", encoding="utf-8")
+    env = {}
+    assert load_laya_env(f, env) == ["LAYA_API_HOST"]
+    assert env == {"LAYA_API_HOST": "0.0.0.0"}      # main() still refuses it without ALLOW_REMOTE in the env
+    f.write_bytes(b"LAYA_API_TOKEN=\xff\xfe\xfa")
+    assert load_laya_env(f, {}) == []

@@ -39,21 +39,22 @@ Run commands from the project folder, in PowerShell or cmd.
 `.\astra test` result line:
 
 ```
-214 passed, 5 deselected in 6.03s
+231 passed, 5 deselected in 5.13s
 ```
 
 | Folder | Tests |
 |---|---:|
 | `tests/etl` (clean 45, notify 13, qa_cases 10, requeue 7, rules 3, transform 5) | 83 |
-| `tests/n8n` (incl. 2 for the Telegram webhook workflow) | 36 |
-| `tests/bot` (Telegram bridge, doc 36) | 51 |
-| `tests/decision_engine`, without the marker `laya` | 44 |
-| Total | 214 |
+| `tests/n8n` (incl. 2 for the Telegram webhook workflow, 9 for the Laya gateway and route hint, doc 37) | 45 |
+| `tests/bot` (Telegram bridge, doc 36; incl. 6 for plain-text answers) | 57 |
+| `tests/decision_engine`, without the marker `laya` (incl. 2 for the `.env` reader) | 46 |
+| Total | 231 |
 
 The 5 deselected tests are the real-model Laya tests. `.\astra test` uses the interpreter in `.venv-laya`.
 
-Latest gate run (2026-11-18 12:57, bounded runner, log in `.validation-logs\20261118-125705`), all PASS:
-`python -m compileall -q src tests`, `.\astra test`, `.\astra n8n lint`, `.\astra n8n check-live`
+Latest gate run (2026-11-18 15:11, bounded runner, log in `.validation-logs\20261118-151141`), all PASS:
+`python -m compileall -q src tests`, `.\astra test`, `.\astra n8n lint`, `.\astra n8n build`, `.\astra n8n check-live`,
+`.\astra telegram-bot check`
 (all 2025 references MATCH, reporting role can INSERT: False), `.\astra etl --dry-run --offline` (39 s),
 `.\astra etl --dry-run` (0 new files, 5,914 quarantine rows rechecked, nothing changed).
 Not run: `.\astra laya-test` (model weights) and `sql/tests/dataset_privilege_tests.sql`: it inserts `PRD00001`,

@@ -79,6 +79,13 @@ secrets.
 
 Live check 2026-11-18 (H9): a question sent to the assistant bot was answered through the bridge.
 
+## Answer format
+
+Answers are plain text. Rule 9 of the system message forbids Markdown (`*`, `#`, backticks; lists start with
+`- `). The bridge also strips any Markdown the model still writes (`plain_text` in `bridge.py`): heading `#`,
+`*`/`+` bullets, `**`, `__`, `*` and backticks. Asking the bot to "remember" a format rule in chat lasts only
+for the last 10 messages of that session (window memory), so format rules belong in the system message.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -90,6 +97,7 @@ Live check 2026-11-18 (H9): a question sent to the assistant bot was answered th
 | `HTTP 409 conflict` | Another program polls the same bot | Stop the other bridge, or use another bot |
 | Reply "not available", log `webhook HTTP 404` | Workflow not published (saving is not enough), or wrong path | Open `ASTRA_TELEGRAM_ASSISTANT` in n8n and click Publish (Active); use the production URL `/webhook/astra-assistant` |
 | `stopped: this bot has a Telegram webhook set` after setting up a tunnel | A webhook was set on the assistant bot itself | Not needed: the bridge reaches n8n on 127.0.0.1. Remove that webhook (only the one you set on this bot) |
+| Log `webhook unreachable (TimeoutError)` after about 3 minutes | n8n did not answer in 180 s, usually the Gemini node failing (`fetch failed` = network to Google). n8n retries for minutes | Check n8n → Executions for the error; stop an execution stuck at `running`; ask again when the network is back |
 | Log `webhook HTTP 403` or `401` | Token mismatch | Same value in `.env` and in the n8n credential; header name `X-Astra-Token` |
 | Log `webhook unreachable (URLError)` | n8n not running | `.\astra n8n-start` |
 | Reply after about 1–3 minutes | Gemini is slow or rate-limited | See doc 35 (model choice). The bridge waits up to 180 s |

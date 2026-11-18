@@ -353,3 +353,23 @@ def test_asker_errors_hold_no_secrets(result, text):
     with pytest.raises(b.AskError, match=text) as e:
         b.make_asker(b.config_from_env(env()), post=post)("q", "s")
     assert WTOKEN not in str(e.value)
+
+
+@pytest.mark.parametrize("raw, want", [
+    ("## Ringkasan\n**Net revenue 2025**: Rp 54.269.362.661.171", "Ringkasan\nNet revenue 2025: Rp 54.269.362.661.171"),
+    ("* Bandung\n  * Sunter\n+ Bekasi", "- Bandung\n  - Sunter\n- Bekasi"),
+    ("Pakai `.\\astra fix` dan __jangan__ *ubah*", "Pakai .\\astra fix dan jangan ubah"),
+    ("- sudah polos\n\nbaris 2", "- sudah polos\n\nbaris 2"),
+    ("Kode #A12 tetap", "Kode #A12 tetap"),   # a '#' that is not a heading stays
+])
+def test_plain_text_removes_markdown(raw, want):
+    assert b.plain_text(raw) == want
+
+
+def test_asker_returns_plain_text_and_rejects_markdown_only_answers():
+    cfg = b.config_from_env(env())
+    ok = b.make_asker(cfg, post=lambda *a: (200, json.dumps({"output": "**Rp 1**"}).encode()))
+    assert ok("q", "s") == "Rp 1"
+    empty = b.make_asker(cfg, post=lambda *a: (200, json.dumps({"output": "** **"}).encode()))
+    with pytest.raises(b.AskError, match="empty"):
+        empty("q", "s")

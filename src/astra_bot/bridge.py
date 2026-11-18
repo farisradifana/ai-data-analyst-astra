@@ -112,6 +112,19 @@ def config_from_env(env: dict[str, str]) -> BridgeConfig:
     return BridgeConfig(token, frozenset(int(p) for p in parts), int(chat) if chat else None, url, wtoken)
 
 
+_MD_HEADING = re.compile(r"^[ \t]*#{1,6}[ \t]+", re.M)
+_MD_BULLET = re.compile(r"^([ \t]*)[*+][ \t]+", re.M)
+_MD_EMPHASIS = re.compile(r"(\*\*|__|\*|`)")
+
+
+def plain_text(answer: str) -> str:
+    """Telegram gets plain text: drop Markdown the model may still write (the system message asks for none).
+    Headings lose their '#', '*'/'+' bullets become '- ', and *, **, __ and backticks are removed."""
+    text = _MD_HEADING.sub("", answer)
+    text = _MD_BULLET.sub(r"\1- ", text)
+    return _MD_EMPHASIS.sub("", text).strip()
+
+
 # ---------------------------------------------------------------- n8n webhook client
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -146,9 +159,9 @@ def make_asker(cfg: BridgeConfig, post: Callable = _http_post_json, timeout: flo
             out = json.loads(raw.decode("utf-8")).get("output")
         except (ValueError, AttributeError):
             raise AskError("webhook answer is not JSON with an 'output' field") from None
-        if not isinstance(out, str) or not out.strip():
+        if not isinstance(out, str) or not plain_text(out):
             raise AskError("webhook answer is empty")
-        return out.strip()
+        return plain_text(out)
     return ask
 
 

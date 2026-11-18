@@ -7,6 +7,8 @@ Built from `git log` (date, short hash, subject). Newest first. Dates are commit
 
 ## 2026-11-18
 
+- Telegram answers in plain text: system-message rule 9 (no `*`, `#`, backticks) and the bridge strips leftover Markdown (doc 36)
+- Laya in n8n: gateway workflow `ASTRA_LAYA_DECISION_ENGINE` and a route hint in the Telegram assistant workflow; Laya API reads `LAYA_*` from `.env` (doc 37, H10)
 - H9 done: live Telegram question answered through the bridge; 404 and webhook troubleshooting notes (doc 36, H9)
 - Telegram bridge: answer @mentions and replies to the bot in the group (topics too); privacy-mode note (doc 36, H9)
 - Telegram chat for the data assistant: local bridge `.\astra telegram-bot` (doc 36) and webhook workflow `ASTRA_TELEGRAM_ASSISTANT`; Looker Studio CUSTOM QUERY note (doc 34, H5); spec cases 16 and 17 recorded

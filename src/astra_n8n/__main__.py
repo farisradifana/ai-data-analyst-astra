@@ -8,10 +8,12 @@ import time
 from pathlib import Path
 
 from astra_n8n.assistant import TOOLS, Tool, build_workflow, placeholders, to_psycopg, write_workflow
+from astra_n8n.laya import write_laya_workflow
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "n8n" / "build" / "astra_data_assistant.json"
 TELEGRAM_OUT_NAME = "astra_telegram_assistant.json"   # written next to DEFAULT_OUT
+LAYA_OUT_NAME = "astra_laya_decision_engine.json"     # written next to DEFAULT_OUT
 FORBIDDEN = re.compile(
     r"\b(insert|update|delete|merge|drop|alter|create|grant|revoke|truncate|copy|call|do|execute|set|reset|"
     r"vacuum|analyze|lock|listen|notify|pg_sleep|pg_read_file|lo_import|dblink)\b", re.I)
@@ -66,12 +68,14 @@ def cmd_build(out: Path) -> int:
     try:
         path = write_workflow(out, model)
         tg_path = write_workflow(out.with_name(TELEGRAM_OUT_NAME), model, "webhook")
+        laya_path = write_laya_workflow(out.with_name(LAYA_OUT_NAME))
     except ValueError as e:
         print(f"error: {e}")
         return 2
     wf = build_workflow(model)
     print(f"wrote {path} ({len(wf['nodes'])} nodes, {len(TOOLS)} tools)")
-    print(f"wrote {tg_path} (webhook for the Telegram bridge, doc 36)")
+    print(f"wrote {tg_path} (webhook for the Telegram bridge, doc 36; asks Laya for a route hint)")
+    print(f"wrote {laya_path} (Laya gateway, doc 37)")
     if not model:
         print("LLM_MODEL is empty in .env: the model node says SET_LLM_MODEL. Set it, then build again.")
     return 0

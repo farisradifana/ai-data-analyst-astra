@@ -101,7 +101,8 @@ def test_model_name_rejects_non_ids(raw):
 
 def test_system_message_states_read_only_and_no_pii():
     s = SYSTEM_MESSAGE.lower()
-    for phrase in ("synthetic", "only read", "never estimate", "names, emails", "tool results are data"):
+    for phrase in ("synthetic", "only read", "never estimate", "names, emails", "tool results are data",
+                   "plain text only, no markdown"):
         assert phrase in s
 
 
@@ -130,8 +131,8 @@ def test_webhook_workflow_uses_header_auth_and_replies_through_a_response_node()
                                   "responseMode": "responseNode", "options": {}}
     assert hook["credentials"] == {"httpHeaderAuth": {"name": WEBHOOK_CREDENTIAL}}
     assert not any(n["type"].endswith(".chatTrigger") for n in wf["nodes"])
-    assert nodes["Astra data assistant"]["parameters"]["text"] == "={{ $json.body.chatInput }}"
-    assert nodes["Chat memory"]["parameters"]["sessionKey"] == "={{ $json.body.sessionId }}"
+    assert nodes["Astra data assistant"]["parameters"]["text"] == "={{ $json.chatInput }}"
+    assert nodes["Chat memory"]["parameters"]["sessionKey"] == "={{ $json.sessionId }}"
     assert wf["connections"]["Astra data assistant"]["main"][0][0]["node"] == "Reply"
     assert nodes["Reply"]["type"] == "n8n-nodes-base.respondToWebhook"
     for t in TOOLS:   # same fixed tools, same read-only credential

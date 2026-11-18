@@ -150,10 +150,45 @@ def create_app(manager: Any = None, policy: dict[str, TaskPolicy] | None = None,
     return app
 
 
+# Settings the API may take from .env. LAYA_API_ALLOW_REMOTE is deliberately absent: a non-loopback bind
+# must be set explicitly in the environment of the process.
+ENV_FILE_KEYS = frozenset({"LAYA_API_TOKEN", "LAYA_API_HOST", "LAYA_API_PORT", "LAYA_API_TIMEOUT_S",
+                           "LAYA_CHECKPOINT", "LAYA_THREADS"})
+
+
+def load_laya_env(env_file: str | os.PathLike, environ: dict | None = None) -> list[str]:
+    """Copy the allowed LAYA_* settings from .env into the environment unless already set. Other keys are
+    ignored, values are never logged. Returns the names that were set."""
+    environ = os.environ if environ is None else environ
+    try:
+        with open(env_file, encoding="utf-8-sig") as fh:
+            lines = fh.read().splitlines()
+    except (OSError, UnicodeError):
+        return []
+    names = []
+    for line in lines:
+        line = line.strip()
+        if not line.startswith("LAYA_") or "=" not in line:
+            continue
+        key, value = (p.strip() for p in line.split("=", 1))
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+            value = value[1:-1]
+        else:
+            value = value.split(" #", 1)[0].strip()      # unquoted value: drop an inline comment
+        if key in ENV_FILE_KEYS and value and key not in environ:
+            environ[key] = value
+            names.append(key)
+    return names
+
+
 def main() -> None:
     import uvicorn
+    from pathlib import Path
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    loaded = load_laya_env(Path(__file__).resolve().parents[2] / ".env")
+    if loaded:
+        log.info("settings from .env: %s", ", ".join(sorted(loaded)))
     host = os.getenv("LAYA_API_HOST", "127.0.0.1")
     port = int(os.getenv("LAYA_API_PORT", "8765"))
     if not _is_loopback(host) and os.getenv("LAYA_API_ALLOW_REMOTE") != "1":

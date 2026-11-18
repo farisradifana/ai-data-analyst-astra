@@ -1,7 +1,8 @@
 # 26 — Laya Local API and n8n Integration
 
-Status 2026-11-17: the local API is **implemented and smoke-tested**. The n8n workflow is
-**not built yet**. No existing n8n workflow was modified. n8n 2.35.7 runs natively on Windows
+Status 2026-11-18: the local API is **implemented and smoke-tested**. The n8n gateway workflow
+`ASTRA_LAYA_DECISION_ENGINE` and the route hint in the Telegram workflow are **generated**
+(see [doc 37](37-laya-n8n-routing.md)); import is human step H10. No existing non-Astra n8n workflow was modified. n8n 2.35.7 runs natively on Windows
 (not Docker), so `127.0.0.1` from n8n reaches the host.
 
 ## Local API (`src/decision_engine/api.py`)
@@ -11,7 +12,8 @@ Start it from the project folder, in PowerShell or cmd:
 .\astra laya-api
 ```
 This command uses `.venv-laya` and sets `PYTHONPATH` and `HF_HUB_OFFLINE=1`.
-Needs `LAYA_API_TOKEN` (≥ 16 chars) in the environment. Without it, the server refuses to start.
+Needs `LAYA_API_TOKEN` (≥ 16 chars). Since 2026-11-18 the server reads `LAYA_*` settings from `.env`
+(a variable already set in the environment wins). Without a token, the server refuses to start.
 Generate one with `python -c "import secrets;print(secrets.token_urlsafe(32))"` and keep it in `.env`.
 
 | Endpoint | Auth | Purpose |
@@ -53,7 +55,9 @@ Known limits:
 
 Automated tests: `tests/decision_engine/test_api.py` (20 tests, stub model).
 
-## Planned workflow `ASTRA_LAYA_DECISION_ENGINE` (not built)
+## Workflow `ASTRA_LAYA_DECISION_ENGINE` (generated 2026-11-18, doc 37)
+
+The original plan, kept for reference. The built version is described in [doc 37](37-laya-n8n-routing.md).
 
 Trigger → Validate Input → HTTP Request `POST http://127.0.0.1:8765/predict` with header
 `Authorization: Bearer {{$env.LAYA_API_TOKEN}}` (or an n8n Header Auth credential) → Parse

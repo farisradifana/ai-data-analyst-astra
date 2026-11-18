@@ -39,7 +39,8 @@ flowchart TD
 | `src/decision_engine/evaluation.py` | Benchmark on `evals/laya/*.jsonl` → `reports/laya/` |
 | `src/decision_engine/api.py` | FastAPI on 127.0.0.1: `/health`, `/model-info`, `/predict`, `/evaluate`; bearer token, input limits, timeout |
 
-Not yet implemented: n8n workflow `ASTRA_LAYA_DECISION_ENGINE`, Telegram routing. See [26-laya-n8n-integration.md](26-laya-n8n-integration.md).
+n8n gateway `ASTRA_LAYA_DECISION_ENGINE` and the route hint in the Telegram assistant: [doc 37](37-laya-n8n-routing.md)
+(generated 2026-11-18). The hint never decides anything: the policy keeps both tasks disabled.
 
 ## Hard limits
 
