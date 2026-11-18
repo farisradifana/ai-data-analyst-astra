@@ -65,7 +65,10 @@ Running it signed out needs "Run whether user is logged on or not", which stores
 - `.\astra daily -DryRun -NoNotify` → exit 0. The log has the per-table counts.
 - `.\astra daily -DryRun -NoNotify -TimeoutSecondsOverride 2` → stopped after 2 s, exit 124.
   No ETL python process was left running.
-- `.\astra schedule -Show` → "not registered". The task is created only after H6.
+- H6 (2026-11-18): `.\astra schedule -At 08:30` → registered.
+  - The user chose 08:30 WIB. The PC time zone is SE Asia Standard Time, UTC+7.
+  - `-Show` → state Ready, next run 2026-11-19 08:30.
+  - Settings checked: StartWhenAvailable, IgnoreNew, 1 h limit, RunLevel Limited, Interactive logon.
 - Launcher fix: `astra.cmd` used to return exit code 0 even when a command failed.
   The cause was `exit /b %ERRORLEVEL%` inside a `( )` block, which is expanded before the command runs.
   Each command now runs under its own label.

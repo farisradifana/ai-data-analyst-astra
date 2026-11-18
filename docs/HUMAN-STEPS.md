@@ -136,7 +136,7 @@ daily at 02:00, and runs only while you are signed in. Choose the time, then run
 ```
 To remove it: `.\astra schedule -Unregister`.
 
-- [ ] H6 done
+- [x] H6 done (2026-11-18: registered daily at 08:30 WIB, user's choice; first run 2026-11-19 08:30)
 
 ## H7 — GitHub backup scope
 
