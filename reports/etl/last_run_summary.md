@@ -1,6 +1,6 @@
 # ETL run summary (dry-run)
 
-Generated: 2026-11-18T04:37:06+00:00  
+Generated: 2026-11-18T05:58:11+00:00  
 Run id: n/a (dry run)
 
 New files are read once. Quarantine rows are rechecked on every run.
