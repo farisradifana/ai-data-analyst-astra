@@ -13,6 +13,7 @@ rem   .\astra test                                  unit tests (.venv-laya)
 rem   .\astra laya-test                             real Laya model tests, offline
 rem   .\astra laya-api                              start the local Laya API (127.0.0.1)
 rem   .\astra laya-eval [args]                      Laya evaluation
+rem   .\astra background install^|start^|status^|stop^|uninstall   n8n, Laya API and bridge at sign-in
 rem Each command runs outside a ( ) block, so exit /b returns that command's own exit code.
 setlocal
 set "ROOT=%~dp0"
@@ -43,6 +44,7 @@ if /i "%CMD%"=="test" goto test
 if /i "%CMD%"=="laya-test" goto layatest
 if /i "%CMD%"=="laya-api" goto layaapi
 if /i "%CMD%"=="laya-eval" goto layaeval
+if /i "%CMD%"=="background" goto background
 echo usage: .\astra ^<command^> [args]
 echo   etl [--dry-run] [--offline]       run the ETL (load to Supabase)
 echo   fix list ^| show ^| set ^| drop ^| history   fix quarantined rows (add -h for help)
@@ -57,6 +59,7 @@ echo   test                              unit tests
 echo   laya-test                         real Laya model tests, offline
 echo   laya-api                          start the local Laya API
 echo   laya-eval [args]                  Laya evaluation
+echo   background install ^| start ^| status ^| stop ^| uninstall   n8n, Laya API and bridge in the background at sign-in
 exit /b 2
 
 :etl
@@ -122,4 +125,8 @@ exit /b %ERRORLEVEL%
 
 :layaeval
 "%LAYA_PY%" -m decision_engine.evaluation%REST%
+exit /b %ERRORLEVEL%
+
+:background
+%PS% "%ROOT%scripts\background.ps1"%REST%
 exit /b %ERRORLEVEL%

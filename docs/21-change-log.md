@@ -7,6 +7,7 @@ Built from `git log` (date, short hash, subject). Newest first. Dates are commit
 
 ## 2026-11-18
 
+- Background at sign-in: `.\astra background install|start|status|stop|uninstall` runs n8n, the Laya API and the Telegram bridge hidden, with restarts (Startup-folder VBS, doc 36)
 - Telegram answers in plain text: system-message rule 9 (no `*`, `#`, backticks) and the bridge strips leftover Markdown (doc 36)
 - Laya in n8n: gateway workflow `ASTRA_LAYA_DECISION_ENGINE` and a route hint in the Telegram assistant workflow; Laya API reads `LAYA_*` from `.env` (doc 37, H10)
 - H9 done: live Telegram question answered through the bridge; 404 and webhook troubleshooting notes (doc 36, H9)

@@ -69,6 +69,26 @@ Human step **H9** in [HUMAN-STEPS.md](HUMAN-STEPS.md) has the click path. In sho
 
 Exit codes: 0 time limit or Ctrl+C · 1 Telegram unreachable · 2 configuration error · 3 webhook or polling conflict.
 
+## Background at sign-in
+
+`scripts\background.ps1` keeps n8n (`.\astra n8n-start`), the Laya API (`.\astra laya-api`) and the bridge
+(`.\astra telegram-bot run --minutes 1440`) running without windows. A Startup-folder VBS starts it at sign-in.
+
+| Command | What it does |
+|---|---|
+| `.\astra background install` | Writes `astra-background.vbs` to the user's Startup folder |
+| `.\astra background start` | Starts the supervisor now, hidden (a second one exits at once) |
+| `.\astra background status` | Supervisor, each service, Startup file, last log lines |
+| `.\astra background stop` | Stops the supervisor and the services it started; services started by hand are left alone |
+| `.\astra background uninstall` | Removes the Startup file (running services keep running) |
+
+- The bridge starts once n8n answers on 127.0.0.1:5698 (or after 3 minutes).
+- A service that already runs (port in use, or a bridge started by hand) is not started twice. The supervisor
+  checks again every minute and takes over when it stops.
+- Restart after 30 s. Not restarted: exit code 2 (configuration) or 3 (Telegram conflict), or 5 quick failures
+  (each under 2 minutes) in a row. The bridge ends after 1440 minutes by design and is restarted.
+- Logs in `logs\background\` (gitignored): `supervisor.log` and `<service>.out.log` / `.err.log`, one previous copy kept.
+
 ## Tests
 
 `tests/bot/test_bridge.py` (offline, fake Telegram and webhook): allow-list and refusal, group `/ask` rules,
