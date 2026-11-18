@@ -4,7 +4,7 @@ rem   .\astra etl [--dry-run] [--offline]          run the ETL (load to Supabase
 rem   .\astra fix list^|show^|set^|drop^|history ...  fix quarantined rows in the database
 rem   .\astra notify check^|preview^|test           Telegram alerts (counts only)
 rem   .\astra n8n build^|lint^|check-live           the n8n data assistant workflow (doc 35)
-rem   .\astra n8n-start                             n8n on http://127.0.0.1:5698 (Supabase CA trusted)
+rem   .\astra n8n-start                             n8n at http://astra.localhost:5698 (Supabase CA trusted)
 rem   .\astra daily [-DryRun] [-NoNotify]           the scheduled daily job (time limit + log)
 rem   .\astra schedule [-Show^|-Unregister^|-At HH:MM]  Task Scheduler entry for the daily job
 rem   .\astra check-db                             test the database connection
@@ -46,7 +46,7 @@ echo   etl [--dry-run] [--offline]       run the ETL (load to Supabase)
 echo   fix list ^| show ^| set ^| drop ^| history   fix quarantined rows (add -h for help)
 echo   notify check ^| preview ^| test    Telegram alerts (add -h for help)
 echo   n8n build ^| lint ^| check-live   the n8n data assistant workflow (doc 35)
-echo   n8n-start                         start n8n on http://127.0.0.1:5698 (Supabase CA trusted)
+echo   n8n-start                         start n8n at http://astra.localhost:5698 (Supabase CA trusted)
 echo   daily [-DryRun] [-NoNotify]       the scheduled daily job (time limit + log in logs\etl)
 echo   schedule [-Show ^| -Unregister ^| -At HH:MM]   Task Scheduler entry "Astra Daily ETL"
 echo   check-db                          test the database connection
@@ -72,6 +72,9 @@ rem can use SSL Require without "Ignore SSL Issues".
 set "N8N_USER_FOLDER=%USERPROFILE%\.n8n-astra"
 set "N8N_DIAGNOSTICS_ENABLED=false"
 set "N8N_PORT=5698"
+rem Open it as http://astra.localhost:5698: browser cookies ignore the port, so on 127.0.0.1 the other
+rem n8n instances overwrite this one's n8n-auth login cookie (save fails with "Unauthorized").
+set "N8N_EDITOR_BASE_URL=http://astra.localhost:5698"
 set "N8N_LISTEN_ADDRESS=127.0.0.1"
 rem Task runner broker: 5699 (the other n8n uses the default 5679), loopback only.
 set "N8N_RUNNERS_BROKER_PORT=5699"
